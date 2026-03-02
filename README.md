@@ -1,111 +1,88 @@
-# ⚡ AWR Key System — by Sanzxmzz
+# ⚡ AWR Key System v3 — by Sanzxmzz
 
-Full-stack key management system untuk AWR Script.
-**Next.js + Supabase + Vercel** — siap deploy!
+## 🚀 Setup (3 Langkah)
 
----
-
-## 🚀 Cara Setup (3 langkah)
-
-### Step 1 — Jalankan SQL di Supabase
+### 1. Jalankan SQL di Supabase
 1. Buka: https://supabase.com/dashboard/project/uivqjmpbilfoxrazsfnu/sql
-2. Klik **"New query"**
-3. Copy seluruh isi file **`awr_database.sql`** → paste → klik **Run**
-4. Selesai! Semua tabel + fungsi + akun developer sudah dibuat.
+2. New Query → Copy isi `awr_database.sql` → Paste → Run
 
-### Step 2 — Ambil Supabase Keys
+### 2. Ambil Supabase Keys
 Buka: https://supabase.com/dashboard/project/uivqjmpbilfoxrazsfnu/settings/api
-- Copy **Project URL**
-- Copy **anon / public key**
-- Copy **service_role key** ⚠️ (rahasia, jangan share!)
 
-### Step 3 — Deploy ke Vercel
-1. Push folder ini ke GitHub (buat repo baru → upload semua file)
-2. Buka https://vercel.com → **New Project** → import dari GitHub
-3. Di bagian **Environment Variables**, tambahkan:
+### 3. Deploy ke Vercel
+Environment Variables yang wajib diisi di Vercel:
 
 | Key | Value |
 |-----|-------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://uivqjmpbilfoxrazsfnu.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` (anon key) |
-| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` (service role key) |
-| `JWT_SECRET` | string random panjang, contoh: `awrSecret!Sanzxmzz@2024` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key dari Supabase |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key dari Supabase |
+| `JWT_SECRET` | random string panjang |
+| `EMAIL_USER` | Gmail kamu (aktifkan App Password) |
+| `EMAIL_PASS` | Gmail App Password (bukan password biasa) |
 
-4. Klik **Deploy** — tunggu ~1 menit
+**Cara buat Gmail App Password:**
+1. Buka myaccount.google.com → Security
+2. 2-Step Verification harus aktif
+3. App Passwords → buat baru → copy 16 karakter
 
-### Step 4 — Update Lua Script
-Setelah dapat URL Vercel, ganti baris ini di `AWR_v1_4.lua`:
+### 4. Update Lua Script
 ```lua
-local KEY_API = "https://nama-project-kamu.vercel.app/api/verify"
+local KEY_API = "https://nama-project.vercel.app/api/verify"
 ```
 
 ---
 
-## 👑 Login Developer Default
+## 👑 Login Developer
 | | |
 |--|--|
-| **Username** | `icansayangara` |
-| **Password** | `sanzxmzz222006` |
-
-> ⚠️ Segera ganti password setelah pertama kali masuk!
+| Username | `icansayangara` |
+| Password | `sanzxmzz222006` |
 
 ---
 
-## 📂 Struktur File
+## ✅ Semua Fitur v3
 
-```
-awr-keysystem/
-├── awr_database.sql          ← 1 file SQL untuk semua setup Supabase
-├── .env.local                ← template environment variables
-├── pages/
-│   ├── index.tsx             ← halaman utama (semua UI)
-│   └── api/
-│       ├── verify.ts         ← endpoint dari Lua script
-│       ├── auth/             ← login & register
-│       ├── user/             ← profil & notifikasi
-│       ├── reseller/         ← kirim key
-│       ├── developer/        ← panel full control
-│       ├── routes/           ← upload & download rute
-│       └── leaderboard.ts    ← top executions
-├── lib/
-│   ├── supabase.ts           ← koneksi database
-│   ├── auth.ts               ← JWT & bcrypt
-│   └── middleware.ts         ← cek role
-└── styles/globals.css        ← semua styling
-```
+**Auth**
+- Login/Register + show-hide password
+- Ingat saya 30 hari
+- Lupa password via email (kode OTP 6 digit, berlaku 20 menit)
 
----
+**User Dashboard**
+- Key aktif: KEY, expired, sisa waktu, HWID max, berapa kali dipakai
+- Tombol **Get Free Key 24 Jam** (pakai MoneyBlink task)
+- Notifikasi in-app
+- Pengumuman dari developer/reseller
+- Edit profil: avatar URL, background foto/video, username, roblox, password
 
-## ✅ Fitur Lengkap
+**Reseller Panel**
+- Kirim key ke user via dropdown
+- Durasi: 1/3/5/7/30/60 hari / Lifetime
+- HWID Max custom 1–999999999999
+- History key
+- Broadcast ke semua user (notif website + opsional email)
+- Lihat list user
 
-**User**
-- Register / Login (show-hide password)
-- Dashboard: key aktif, expired, sisa waktu, HWID max, berapa kali dipakai
-- Notifikasi in-app dari reseller / developer
-- Pengumuman broadcast
-- Edit profil: avatar URL, background foto/video URL, username, roblox, password
-
-**Reseller**
-- Kirim key ke user via dropdown username
-- Durasi: 1 Hari / 3 Hari / 5 Hari / 7 Hari / 30 Hari / 60 Hari / Lifetime
-- HWID Max custom 1 – 999999999999
-- Lihat history key yang pernah dikirim
-- Lihat list semua user terdaftar
-
-**Developer (kontrol penuh)**
-- Lihat semua user: username, email, role, key, roblox info, total execution
-- Edit user: nama, email, password, role, roblox
-- Ban / Unban user (ban = semua key dimatikan)
-- Manage semua key: edit, hapus, assign ke user lain
-- Broadcast pengumuman ke semua user
-- Kirim key global yang bisa dipakai siapapun
-- Jadikan / copot reseller
+**Developer Panel**
+- Lihat semua user + full stats
+- Edit user (username, email, password, role, roblox)
+- Ban/Unban (ban = semua key dimatikan)
+- Edit/hapus key
+- Broadcast + email ke semua
+- Kirim key global ke semua user
+- Manage reseller
 
 **Routes**
-- Browse & download rute publik
-- Upload rute dalam format JSON
-- Kompatibel dengan AWR Script load-from-web
+- Upload file JSON dari internal (.json/.txt)
+- Visibilitas: Public / Private (dengan password)
+- Thumbnail dari URL
+- Download .json / copy data
 
 **Leaderboard**
-- Top 20 user by total execution
-- Username di-mask: `Can*****ara`
+- Top 20 executions, username di-mask
+
+**Tech**
+- Smooth page transitions (tidak refresh sendiri)
+- Particle background animated
+- Animation delay bertahap
+- Remember me 30 hari

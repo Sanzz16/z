@@ -1,6 +1,5 @@
 -- ================================================================
--- AWR KEY SYSTEM — DATABASE SETUP
--- Satu file untuk semua: tabel, fungsi, RLS, dan akun developer
+-- AWR KEY SYSTEM v3 — DATABASE SETUP (SATU FILE LENGKAP)
 -- Jalankan sekali di Supabase SQL Editor
 -- ================================================================
 
@@ -34,6 +33,7 @@ CREATE TABLE IF NOT EXISTS keys (
   expires_at TIMESTAMPTZ,
   is_active BOOLEAN DEFAULT true,
   is_used BOOLEAN DEFAULT false,
+  is_free_key BOOLEAN DEFAULT false,
   times_used INTEGER DEFAULT 0,
   duration_type VARCHAR(20) DEFAULT '24h' CHECK (duration_type IN ('24h', '3d', '5d', '7d', '30d', '60d', 'lifetime')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -68,6 +68,9 @@ CREATE TABLE IF NOT EXISTS routes (
   uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
   download_count INTEGER DEFAULT 0,
   is_public BOOLEAN DEFAULT true,
+  has_password BOOLEAN DEFAULT false,
+  password TEXT,
+  thumbnail_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -100,6 +103,15 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Password reset codes table
+CREATE TABLE IF NOT EXISTS password_resets (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+  code VARCHAR(10) NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ─── FUNCTIONS ─────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION increment_executions(user_id UUID)
@@ -113,32 +125,33 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ─── ROW LEVEL SECURITY ─────────────────────────────────────────
 
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE keys ENABLE ROW LEVEL SECURITY;
-ALTER TABLE key_hwids ENABLE ROW LEVEL SECURITY;
-ALTER TABLE execution_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE routes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE users            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE keys             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE key_hwids        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE execution_logs   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE routes           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sessions         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE password_resets  ENABLE ROW LEVEL SECURITY;
 
--- Service role (backend API) boleh akses semua
-CREATE POLICY "service_users"       ON users          FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY "service_keys"        ON keys           FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY "service_key_hwids"   ON key_hwids      FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY "service_exec_logs"   ON execution_logs FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY "service_routes"      ON routes         FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY "service_notifs"      ON notifications  FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY "service_announce"    ON announcements  FOR ALL TO service_role USING (true) WITH CHECK (true);
-CREATE POLICY "service_sessions"    ON sessions       FOR ALL TO service_role USING (true) WITH CHECK (true);
+-- Service role (backend) dapat akses semua
+CREATE POLICY "svc_users"       ON users           FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_keys"        ON keys            FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_hwids"       ON key_hwids       FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_exec"        ON execution_logs  FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_routes"      ON routes          FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_notifs"      ON notifications   FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_announce"    ON announcements   FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_sessions"    ON sessions        FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "svc_pw_resets"   ON password_resets FOR ALL TO service_role USING (true) WITH CHECK (true);
 
--- Public bisa baca routes
-CREATE POLICY "public_read_routes"  ON routes FOR SELECT TO anon USING (is_public = true);
+-- Public bisa baca routes yang public
+CREATE POLICY "pub_routes"      ON routes FOR SELECT TO anon USING (is_public = true);
 
 -- ─── SEED: AKUN DEVELOPER DEFAULT ───────────────────────────────
 -- Username : icansayangara
 -- Password : sanzxmzz222006
--- (hash bcrypt $2a$10$...)
 
 INSERT INTO users (username, email, password_hash, role)
 VALUES (
