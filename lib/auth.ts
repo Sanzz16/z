@@ -6,7 +6,10 @@ const SECRET = process.env.JWT_SECRET || 'fallback-dev-secret'
 
 export const hashPassword    = (pw: string)              => bcrypt.hash(pw, 10)
 export const comparePassword = (pw: string, h: string)   => bcrypt.compare(pw, h)
-export const signToken       = (payload: object): string => jwt.sign(payload, SECRET, { expiresIn: '7d' })
+
+export function signToken(payload: object, rememberMe = false): string {
+  return jwt.sign(payload, SECRET, { expiresIn: rememberMe ? '30d' : '7d' })
+}
 
 export function verifyToken(token: string): any {
   try { return jwt.verify(token, SECRET) } catch { return null }
@@ -23,6 +26,10 @@ export function generateKey(): string {
   const C = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
   const seg = (n: number) => Array.from({ length: n }, () => C[Math.floor(Math.random() * C.length)]).join('')
   return [seg(6), seg(4), seg(4), seg(4), seg(6)].join('-')
+}
+
+export function generateCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
 export function getExpiryDate(type: string): Date | null {
