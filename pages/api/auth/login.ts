@@ -13,7 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!await comparePassword(password, user.password_hash))
     return res.status(401).json({ error: 'Username atau password salah' })
 
-  const token = signToken({ userId: user.id, role: user.role })
+  const { rememberMe } = req.body
+  const token = signToken({ userId: user.id, role: user.role }, !!rememberMe)
   res.json({
     token,
     user: { id: user.id, username: user.username, email: user.email, role: user.role,
