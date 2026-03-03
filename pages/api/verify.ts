@@ -1,168 +1,177 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseAdmin } from '../../lib/supabase'
 
-// ─── HTML UI ditampilkan saat buka di browser tanpa key ───────
 const HTML_UI = `<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>AWR Verify API — Sanzxmzz</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@300;500;600;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#050d1a;color:#c8dff0;font-family:'Inter',sans-serif;min-height:100vh}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#04101a}::-webkit-scrollbar-thumb{background:#1a3a5c;border-radius:99px}
-.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,140,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,140,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
-.bg-orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
-.orb1{width:500px;height:500px;background:rgba(0,80,200,.12);top:-150px;right:-100px}
-.orb2{width:400px;height:400px;background:rgba(0,200,255,.07);bottom:-100px;left:-100px}
-.wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:40px 20px 72px}
-.header{text-align:center;margin-bottom:36px}
-.logo{font-family:'Rajdhani',sans-serif;font-size:2.6rem;font-weight:700;letter-spacing:5px;background:linear-gradient(135deg,#00aaff,#0af,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
-.logo-sub{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#3a6a8a;letter-spacing:4px;text-transform:uppercase;margin-top:6px}
-.badge-live{display:inline-flex;align-items:center;gap:6px;background:rgba(0,200,80,.08);border:1px solid rgba(0,200,80,.2);border-radius:99px;padding:4px 14px;font-size:.7rem;color:#4ade80;letter-spacing:1px;text-transform:uppercase;margin-top:16px}
-.dot{width:7px;height:7px;background:#22c55e;border-radius:50%;animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.8)}}
-.sec{font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;color:#00d4ff;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
-.sec::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#1a3a5c,transparent)}
-.card{background:#0a1628;border:1px solid #1a3a5c;border-radius:16px;overflow:hidden;margin-bottom:20px}
-.card-hdr{background:linear-gradient(135deg,rgba(0,60,140,.6),rgba(0,30,80,.6));border-bottom:1px solid #1a3a5c;padding:14px 20px;display:flex;align-items:center;gap:12px}
-.method{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.72rem;padding:4px 10px;border-radius:6px;background:rgba(0,170,255,.15);color:#00d4ff;border:1px solid rgba(0,170,255,.25);letter-spacing:1px}
-.ep-url{font-family:'JetBrains Mono',monospace;font-size:.88rem;color:#cce4f8}
-.ep-url span{color:#5a8ab0}
-.card-body{padding:18px 20px}
-.ptitle{font-size:.65rem;font-weight:600;color:#3a6a8a;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
-.prow{display:grid;grid-template-columns:100px 72px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid rgba(26,58,92,.4);align-items:start}
-.prow:last-child{border-bottom:none}
-.pname{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:#00d4ff}
-.preq{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.5px;text-align:center;align-self:center}
-.req{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
-.opt{background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.2)}
-.pdesc{font-size:.78rem;color:#6b9db8;line-height:1.5}
-.json{background:#04101a;border-radius:12px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:.75rem;line-height:1.8;border:1px solid #162f50;white-space:pre;overflow-x:auto}
-.ln{color:#1a4a80;user-select:none;margin-right:12px;font-size:.68rem}
-.jb{color:#5a8ab0}.jk{color:#7dd3fc}.js{color:#86efac}.jse{color:#fca5a5}.jbt{color:#34d399}.jbf{color:#f87171}.jn{color:#6b7280;font-style:italic}.jnum{color:#fbbf24}.jc{color:#2a4a6a;font-style:italic}
-.rtabs{display:flex;gap:4px;margin-bottom:-1px}
-.rtab{font-family:'JetBrains Mono',monospace;font-size:.7rem;padding:6px 14px;border-radius:8px 8px 0 0;border:1px solid transparent;letter-spacing:.5px}
-.rtab-ok{background:rgba(34,197,94,.08);color:#4ade80;border-color:rgba(34,197,94,.2)}
-.rtab-err{background:rgba(239,68,68,.08);color:#f87171;border-color:rgba(239,68,68,.2)}
-.fgrid{display:grid;grid-template-columns:1fr;gap:10px}
-@media(max-width:580px){.fgrid{grid-template-columns:1fr}.prow{grid-template-columns:90px 70px 1fr}}
-.fcard{background:#04101a;border:1px solid #162f50;border-radius:10px;padding:14px}
-.fn{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#00d4ff;margin-bottom:6px}
-.ft{font-size:.62rem;background:rgba(0,170,255,.07);color:#3a8ab0;padding:2px 8px;border-radius:99px;border:1px solid rgba(0,170,255,.15);display:inline-block;margin-bottom:8px}
-.fd{font-size:.74rem;color:#5a8ab0;line-height:1.5}
-.warn{background:rgba(251,191,36,.04);border:1px solid rgba(251,191,36,.15);border-radius:10px;padding:12px 16px;font-size:.76rem;color:#fbbf24;line-height:1.6;margin-top:14px}
-.err-table .erow{display:grid;grid-template-columns:250px 1fr;gap:12px;padding:11px 20px;border-bottom:1px solid rgba(26,58,92,.35)}
-.err-table .erow:last-child{border-bottom:none}
-.emsg{font-family:'JetBrains Mono',monospace;font-size:.73rem;color:#f87171}
-.edesc{font-size:.76rem;color:#5a8ab0}
-.credit{background:linear-gradient(135deg,rgba(0,50,130,.3),rgba(0,25,70,.3));border:1px solid rgba(0,90,210,.3);border-radius:14px;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
-.cname{font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;color:#00d4ff;letter-spacing:3px}
-.crole{font-size:.7rem;color:#3a6a8a;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
-.cbadges{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
-.cb{font-family:'JetBrains Mono',monospace;font-size:.66rem;padding:3px 10px;border-radius:6px;border:1px solid}
-.cb-dev{color:#a78bfa;border-color:rgba(167,139,250,.25);background:rgba(167,139,250,.08)}
-.cb-ok{color:#34d399;border-color:rgba(52,211,153,.25);background:rgba(52,211,153,.08)}
-.footer{text-align:center;margin-top:44px;font-size:.7rem;color:#1a3a5c;font-family:'JetBrains Mono',monospace;letter-spacing:1px}
+:root{--bg-deep:#08090a;--glass-bg:rgba(255,255,255,0.03);--glass-border:rgba(255,255,255,0.08);--accent-purple:#ff4dff;--accent-blue:#4facfe;--accent-green:#32ff7e;--gradient-primary:linear-gradient(135deg,#ff4dff 0%,#4facfe 100%);--text-main:#ffffff;--text-silver:#c0c0c0;--text-sub:#8E8E93;--card-shadow:0 8px 32px 0 rgba(0,0,0,0.8)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg-deep);background-image:radial-gradient(circle at top right,rgba(50,255,126,0.05),transparent),radial-gradient(circle at bottom left,rgba(255,77,255,0.05),transparent);color:var(--text-main);font-family:'Outfit',sans-serif;min-height:100vh;overflow-x:hidden;padding-bottom:60px;display:flex;flex-direction:column;align-items:center}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:#0a0a0a}::-webkit-scrollbar-thumb{background:rgba(255,77,255,0.3);border-radius:99px}
+.ambient-glow{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.glow-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.2;animation:float 10s infinite ease-in-out alternate}
+.blob-1{top:-10%;left:-20%;width:400px;height:400px;background:var(--accent-purple);animation-delay:-2s}
+.blob-2{bottom:10%;right:-20%;width:300px;height:300px;background:var(--accent-blue);animation-delay:-5s}
+.blob-3{top:50%;left:40%;width:200px;height:200px;background:var(--accent-green);opacity:0.06;animation-delay:-8s}
+@keyframes float{0%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,20px) scale(1.05)}100%{transform:translate(20px,20px) scale(1)}}
+.wrap{position:relative;z-index:1;width:100%;max-width:440px;padding:32px 16px 40px}
+.page-header{text-align:center;margin-bottom:28px;animation:slideUp 0.5s ease forwards}
+.logo{font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:800;letter-spacing:4px;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:logoPulse 2s infinite alternate}
+@keyframes logoPulse{0%{opacity:0.8;transform:scale(1)}100%{opacity:1;transform:scale(1.02)}}
+.logo-sub{font-family:'Rajdhani',sans-serif;font-size:0.68rem;color:var(--text-sub);letter-spacing:4px;text-transform:uppercase;margin-top:4px}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:30px;background:rgba(79,172,254,0.15);border:1px solid var(--accent-blue);color:#fff;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:12px}
+.status-dot{width:6px;height:6px;background:var(--accent-green);border-radius:50%;box-shadow:0 0 6px var(--accent-green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.2)}}
+@keyframes slideUp{to{opacity:1;transform:translateY(0)}}
+
+.hero-card{background:linear-gradient(135deg,rgba(255,77,255,0.1),rgba(79,172,254,0.08));border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:18px 20px;position:relative;overflow:hidden;margin-bottom:14px;animation:slideUp 0.5s ease 0.05s forwards;opacity:0;transform:translateY(20px)}
+.hero-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,var(--accent-purple),var(--accent-blue));z-index:1}
+.hero-card::after{content:'';position:absolute;top:0;left:0;width:120%;height:3px;background:linear-gradient(90deg,transparent,#fff,transparent);transform:translateX(-100%);animation:scanline 3s ease infinite;z-index:2}
+@keyframes scanline{0%{transform:translateX(-100%)}50%{transform:translateX(100%)}100%{transform:translateX(100%)}}
+.hero-content{position:relative;z-index:3}
+.hero-title{font-family:'Orbitron',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:3px;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.hero-sub{font-size:0.72rem;color:var(--text-sub);line-height:1.5}
+
+.glass-panel{background:var(--glass-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--card-shadow);margin-bottom:14px;opacity:0;transform:translateY(20px);animation:slideUp 0.5s ease forwards}
+.glass-panel:nth-child(1){animation-delay:0.1s}.glass-panel:nth-child(2){animation-delay:0.18s}.glass-panel:nth-child(3){animation-delay:0.26s}.glass-panel:nth-child(4){animation-delay:0.34s}.glass-panel:nth-child(5){animation-delay:0.42s}
+
+.sec-title{font-family:'Rajdhani',sans-serif;font-size:0.72rem;font-weight:700;color:var(--accent-purple);letter-spacing:2px;text-transform:uppercase;padding:14px 18px 10px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px}
+.sec-title i{font-size:11px}
+
+.ep-row{padding:12px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.method-badge{font-family:'Rajdhani',sans-serif;font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:8px;letter-spacing:1px;background:rgba(79,172,254,0.15);color:var(--accent-blue);border:1px solid rgba(79,172,254,0.3)}
+.ep-url{font-size:0.82rem;color:var(--text-silver);font-family:'Rajdhani',sans-serif;letter-spacing:1px}
+.ep-url span{color:var(--text-sub)}
+
+.param-row{display:grid;grid-template-columns:80px 58px 1fr;gap:8px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,0.04);align-items:center}
+.param-row:last-child{border-bottom:none}
+.param-name{font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:600;color:var(--accent-blue);letter-spacing:1px}
+.tag{font-size:0.58rem;font-weight:700;padding:2px 7px;border-radius:8px;letter-spacing:0.5px;text-align:center}
+.tag-req{background:rgba(255,59,48,0.15);color:#ff6b6b;border:1px solid rgba(255,59,48,0.3)}
+.tag-opt{background:rgba(142,142,147,0.1);color:var(--text-sub);border:1px solid rgba(142,142,147,0.2)}
+.param-desc{font-size:0.7rem;color:var(--text-sub);line-height:1.4}
+
+.json-wrap{padding:12px 16px}
+.json-block{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px 16px;font-family:'Rajdhani',sans-serif;font-size:0.78rem;line-height:1.9;overflow-x:auto;white-space:pre}
+.jb{color:rgba(255,255,255,0.25)}.jk{color:var(--accent-blue)}.js{color:var(--accent-green)}.jse{color:#ff6b6b}.jbt{color:var(--accent-green)}.jbf{color:#ff6b6b}.jnum{color:#ffd93d}.jc{color:rgba(255,255,255,0.18);font-style:italic}.jcr{color:var(--accent-blue)}.ln{color:rgba(255,255,255,0.14);user-select:none;margin-right:10px;font-size:0.66rem}
+
+.field-list{padding:4px 8px 12px}
+.field-item{padding:10px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:flex-start;gap:10px}
+.field-item:last-child{border-bottom:none}
+.field-icon{width:28px;height:28px;border-radius:8px;flex-shrink:0;background:rgba(79,172,254,0.1);border:1px solid rgba(79,172,254,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent-blue);margin-top:2px}
+.field-key{font-family:'Rajdhani',sans-serif;font-size:0.8rem;font-weight:700;color:var(--text-main);letter-spacing:0.5px}
+.field-type{font-size:0.6rem;color:var(--accent-purple);letter-spacing:0.5px;margin-top:1px}
+.field-desc{font-size:0.68rem;color:var(--text-sub);margin-top:2px;line-height:1.4}
+
+.err-row{padding:10px 18px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;flex-direction:column;gap:2px}
+.err-row:last-child{border-bottom:none}
+.err-msg{font-family:'Rajdhani',sans-serif;font-size:0.76rem;font-weight:600;color:#ff6b6b;letter-spacing:0.5px}
+.err-desc{font-size:0.68rem;color:var(--text-sub)}
+
+.credit-card{background:linear-gradient(135deg,rgba(255,77,255,0.08),rgba(79,172,254,0.06));border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;overflow:hidden;margin-bottom:14px;animation:slideUp 0.5s ease 0.5s forwards;opacity:0;transform:translateY(20px)}
+.credit-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:var(--gradient-primary)}
+.credit-name{font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;letter-spacing:3px;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.credit-role{font-family:'Rajdhani',sans-serif;font-size:0.68rem;color:var(--text-sub);letter-spacing:2px;text-transform:uppercase;margin-top:3px}
+.credit-badges{display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+.cbadge{font-family:'Rajdhani',sans-serif;font-size:0.62rem;font-weight:700;padding:3px 10px;border-radius:8px;letter-spacing:1px}
+.cb-dev{background:rgba(255,77,255,0.12);color:var(--accent-purple);border:1px solid rgba(255,77,255,0.25)}
+.cb-ok{background:rgba(50,255,126,0.1);color:var(--accent-green);border:1px solid rgba(50,255,126,0.25)}
+.footer{text-align:center;font-family:'Rajdhani',sans-serif;font-size:0.65rem;color:rgba(255,255,255,0.12);letter-spacing:2px;text-transform:uppercase;margin-top:6px}
 </style>
 </head>
 <body>
-<div class="bg-grid"></div>
-<div class="bg-orb orb1"></div>
-<div class="bg-orb orb2"></div>
+<div class="ambient-glow">
+  <div class="glow-blob blob-1"></div>
+  <div class="glow-blob blob-2"></div>
+  <div class="glow-blob blob-3"></div>
+</div>
 <div class="wrap">
 
-  <div class="header">
-    <div class="logo">&#9889; AWR</div>
+  <div class="page-header">
+    <div class="logo">AWR</div>
     <div class="logo-sub">Key Verification API &middot; v3</div>
-    <div><span class="badge-live"><span class="dot"></span>API Online</span></div>
+    <div><span class="status-badge"><span class="status-dot"></span>API Online</span></div>
   </div>
 
-  <div class="sec">Endpoint</div>
-  <div class="card">
-    <div class="card-hdr">
-      <span class="method">GET</span>
-      <span class="ep-url"><span>/api/</span>verify</span>
-    </div>
-    <div class="card-body">
-      <div class="ptitle">Query Parameters</div>
-      <div class="prow">
-        <span class="pname">key</span>
-        <span class="preq req">Required</span>
-        <span class="pdesc">Key yang diverifikasi. Format: <code style="color:#00d4ff;font-size:.78rem">XXXXXX-XXXX-XXXX-XXXX-XXXXXX</code></span>
-      </div>
-      <div class="prow">
-        <span class="pname">user</span>
-        <span class="preq opt">Optional</span>
-        <span class="pdesc">Username Roblox player. Untuk log eksekusi &amp; leaderboard.</span>
-      </div>
-      <div class="prow">
-        <span class="pname">hwid</span>
-        <span class="preq opt">Optional</span>
-        <span class="pdesc">Hardware ID executor. Untuk binding per device sesuai <code style="color:#fbbf24;font-size:.78rem">hwid_max</code>.</span>
-      </div>
+  <div class="hero-card">
+    <div class="hero-content">
+      <div class="hero-title">&#9889; KEY SYSTEM</div>
+      <div class="hero-sub">Endpoint verifikasi key AWR Script. Dipanggil otomatis dari executor Roblox.</div>
     </div>
   </div>
 
-  <div class="sec" style="margin-top:28px">Response</div>
-  <div style="margin-bottom:8px"><div class="rtabs"><span class="rtab rtab-ok">&#10003; 200 &mdash; Success</span></div></div>
-  <div class="json"><span class="jb">{</span>
-<span class="ln"> 1</span>  <span class="jk">"success"</span>    : <span class="jbt">true</span>,
-<span class="ln"> 2</span>  <span class="jk">"message"</span>    : <span class="js">"&#10003; Key valid!"</span>,
-<span class="ln"> 3</span>  <span class="jk">"key"</span>        : <span class="js">"ABCDEF-1234-5678-WXYZ-ABCDEF"</span>,
-<span class="ln"> 4</span>  <span class="jk">"username"</span>   : <span class="js">"Sanzxmzz"</span>,
-<span class="ln"> 5</span>  <span class="jk">"expires_at"</span> : <span class="js">"2025-06-01T00:00:00.000Z"</span>,  <span class="jc">// null = lifetime</span>
-<span class="ln"> 6</span>  <span class="jk">"duration_type"</span>: <span class="js">"7d"</span>,            <span class="jc">// 24h | 3d | 5d | 7d | 30d | 60d | lifetime</span>
-<span class="ln"> 7</span>  <span class="jk">"hwid_max"</span>   : <span class="jnum">1</span>,
-<span class="ln"> 8</span>  <span class="jk">"is_free_key"</span>: <span class="jbf">false</span>,
-<span class="ln"> 9</span>  <span class="jk">"credit"</span>     : <span class="js" style="color:#7dd3fc">"Sanzxmzz"</span>
-<span class="jb">}</span></div>
+  <div class="glass-panel">
+    <div class="sec-title"><i class="fa-solid fa-code"></i> Endpoint</div>
+    <div class="ep-row"><span class="method-badge">GET</span><span class="ep-url"><span>/api/</span>verify</span></div>
+    <div class="param-row"><span class="param-name">key</span><span class="tag tag-req">Required</span><span class="param-desc">Key yang diverifikasi</span></div>
+    <div class="param-row"><span class="param-name">user</span><span class="tag tag-opt">Optional</span><span class="param-desc">Username Roblox &mdash; untuk log &amp; leaderboard</span></div>
+    <div class="param-row"><span class="param-name">hwid</span><span class="tag tag-opt">Optional</span><span class="param-desc">Hardware ID executor &mdash; untuk HWID binding</span></div>
+  </div>
 
-  <div style="margin-top:12px;margin-bottom:8px"><div class="rtabs"><span class="rtab rtab-err">&#10007; 200 &mdash; Error</span></div></div>
-  <div class="json"><span class="jb">{</span>
+  <div class="glass-panel">
+    <div class="sec-title"><i class="fa-solid fa-circle-check" style="color:var(--accent-green)"></i> Response &mdash; Success</div>
+    <div class="json-wrap"><div class="json-block"><span class="jb">{</span>
+<span class="ln">1</span>  <span class="jk">"success"</span>       : <span class="jbt">true</span>,
+<span class="ln">2</span>  <span class="jk">"message"</span>       : <span class="js">"&#10003; Key valid!"</span>,
+<span class="ln">3</span>  <span class="jk">"key"</span>           : <span class="js">"ABCDEF-1234-WXYZ-5678-ABCDEF"</span>,
+<span class="ln">4</span>  <span class="jk">"username"</span>      : <span class="js">"Sanzxmzz"</span>,
+<span class="ln">5</span>  <span class="jk">"expires_at"</span>    : <span class="js">"2025-06-01T00:00:00.000Z"</span>,  <span class="jc">// null = lifetime</span>
+<span class="ln">6</span>  <span class="jk">"duration_type"</span> : <span class="js">"7d"</span>,
+<span class="ln">7</span>  <span class="jk">"hwid_max"</span>      : <span class="jnum">1</span>,
+<span class="ln">8</span>  <span class="jk">"is_free_key"</span>   : <span class="jbf">false</span>,
+<span class="ln">9</span>  <span class="jk">"credit"</span>        : <span class="jcr">"Sanzxmzz"</span>
+<span class="jb">}</span></div></div>
+  </div>
+
+  <div class="glass-panel">
+    <div class="sec-title"><i class="fa-solid fa-circle-xmark" style="color:#ff6b6b"></i> Response &mdash; Error</div>
+    <div class="json-wrap"><div class="json-block"><span class="jb">{</span>
 <span class="ln">1</span>  <span class="jk">"success"</span> : <span class="jbf">false</span>,
 <span class="ln">2</span>  <span class="jk">"message"</span> : <span class="jse">"&#10060; Key tidak ditemukan"</span>,
-<span class="ln">3</span>  <span class="jk">"credit"</span>  : <span class="js" style="color:#7dd3fc">"Sanzxmzz"</span>
-<span class="jb">}</span></div>
-  <div class="warn">
-    <strong style="color:#fcd34d">Catatan:</strong> Semua response pakai HTTP <strong>200</strong>. Cek field <code style="font-family:JetBrains Mono,monospace">success</code> (boolean) untuk tau valid atau tidak &mdash; bukan dari HTTP status code.
+<span class="ln">3</span>  <span class="jk">"credit"</span>  : <span class="jcr">"Sanzxmzz"</span>
+<span class="jb">}</span></div></div>
   </div>
 
-  <div class="sec" style="margin-top:28px">Field Reference</div>
-  <div class="fgrid">
-    <div class="fcard"><div class="fn">success</div><div class="ft">boolean</div><div class="fd"><code style="color:#34d399">true</code> = key valid. <code style="color:#f87171">false</code> = tidak valid.</div></div>
-    <div class="fcard"><div class="fn">message</div><div class="ft">string</div><div class="fd">Pesan status dari server. Tampilkan ke user.</div></div>
-    <div class="fcard"><div class="fn">expires_at</div><div class="ft">string | null</div><div class="fd">Tanggal expired ISO 8601. <code style="color:#6b7280;font-style:italic">null</code> = lifetime.</div></div>
-    <div class="fcard"><div class="fn">duration_type</div><div class="ft">string</div><div class="fd">Durasi key: <code style="color:#fbbf24">"24h"</code> <code style="color:#fbbf24">"7d"</code> <code style="color:#fbbf24">"30d"</code> <code style="color:#fbbf24">"lifetime"</code> dll</div></div>
-    <div class="fcard"><div class="fn">hwid_max</div><div class="ft">number</div><div class="fd">Maks device yang bisa bind ke key ini.</div></div>
-    <div class="fcard"><div class="fn">username</div><div class="ft">string | null</div><div class="fd">Username pemilik key di AWR website.</div></div>
+  <div class="glass-panel">
+    <div class="sec-title"><i class="fa-solid fa-list"></i> Field Reference</div>
+    <div class="field-list">
+      <div class="field-item"><div class="field-icon"><i class="fa-solid fa-check"></i></div><div><div class="field-key">success</div><div class="field-type">boolean</div><div class="field-desc"><code style="color:var(--accent-green)">true</code> = valid &nbsp;/&nbsp; <code style="color:#ff6b6b">false</code> = tidak valid</div></div></div>
+      <div class="field-item"><div class="field-icon"><i class="fa-solid fa-comment"></i></div><div><div class="field-key">message</div><div class="field-type">string</div><div class="field-desc">Pesan status dari server</div></div></div>
+      <div class="field-item"><div class="field-icon"><i class="fa-solid fa-clock"></i></div><div><div class="field-key">expires_at</div><div class="field-type">string | null</div><div class="field-desc">Tanggal expired ISO 8601 &mdash; null berarti lifetime</div></div></div>
+      <div class="field-item"><div class="field-icon"><i class="fa-solid fa-tag"></i></div><div><div class="field-key">duration_type</div><div class="field-type">string</div><div class="field-desc">"24h" / "3d" / "7d" / "30d" / "60d" / "lifetime"</div></div></div>
+      <div class="field-item"><div class="field-icon"><i class="fa-solid fa-fingerprint"></i></div><div><div class="field-key">hwid_max</div><div class="field-type">number</div><div class="field-desc">Maks device yang bisa bind ke key ini</div></div></div>
+      <div class="field-item"><div class="field-icon"><i class="fa-solid fa-user"></i></div><div><div class="field-key">username</div><div class="field-type">string | null</div><div class="field-desc">Username pemilik key di website AWR</div></div></div>
+    </div>
   </div>
 
-  <div class="sec" style="margin-top:28px">Possible Errors</div>
-  <div class="card err-table">
-    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#9888; Key tidak boleh kosong</span><span class="edesc">Parameter ?key= tidak ada / kosong</span></div>
-    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Key tidak ditemukan</span><span class="edesc">Key tidak ada di database</span></div>
-    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Key sudah dinonaktifkan</span><span class="edesc">Key di-disable oleh developer/reseller</span></div>
-    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Key sudah expired</span><span class="edesc">Tanggal expires_at sudah lewat</span></div>
-    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Akun kamu dibanned</span><span class="edesc">Pemilik key terkena banned</span></div>
-    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; HWID limit tercapai</span><span class="edesc">Jumlah device sudah mencapai hwid_max</span></div>
+  <div class="glass-panel">
+    <div class="sec-title"><i class="fa-solid fa-triangle-exclamation" style="color:#ffd93d"></i> Possible Errors</div>
+    <div class="err-row"><span class="err-msg">&#9888; Key tidak boleh kosong</span><span class="err-desc">Parameter ?key= tidak ada atau kosong</span></div>
+    <div class="err-row"><span class="err-msg">&#10060; Key tidak ditemukan</span><span class="err-desc">Key tidak ada di database</span></div>
+    <div class="err-row"><span class="err-msg">&#10060; Key sudah dinonaktifkan</span><span class="err-desc">Key di-disable oleh developer / reseller</span></div>
+    <div class="err-row"><span class="err-msg">&#10060; Key sudah expired</span><span class="err-desc">Tanggal expires_at sudah lewat</span></div>
+    <div class="err-row"><span class="err-msg">&#10060; Akun kamu dibanned</span><span class="err-desc">Pemilik key terkena banned</span></div>
+    <div class="err-row"><span class="err-msg">&#10060; HWID limit tercapai</span><span class="err-desc">Jumlah device sudah melebihi hwid_max</span></div>
   </div>
 
-  <div class="sec" style="margin-top:28px">Credit</div>
-  <div class="credit">
+  <div class="credit-card">
     <div>
-      <div class="cname">Sanzxmzz</div>
-      <div class="crole">Developer &middot; AWR Key System</div>
+      <div class="credit-name">Sanzxmzz</div>
+      <div class="credit-role">Developer &middot; AWR Key System</div>
     </div>
-    <div class="cbadges">
-      <span class="cb cb-dev">&#9889; AWR Key System v3</span>
-      <span class="cb cb-ok">&#10003; API Verified &middot; Production</span>
+    <div class="credit-badges">
+      <span class="cbadge cb-dev"><i class="fa-solid fa-bolt" style="margin-right:4px"></i>AWR v3</span>
+      <span class="cbadge cb-ok"><i class="fa-solid fa-circle-check" style="margin-right:4px"></i>Production</span>
     </div>
   </div>
 
-  <div class="footer">&#169; Sanzxmzz &middot; AWR Key System &middot; All Rights Reserved</div>
+  <div class="footer">&#169; Sanzxmzz &middot; All Rights Reserved</div>
 </div>
 </body>
 </html>`
@@ -170,7 +179,6 @@ body{background:#050d1a;color:#c8dff0;font-family:'Inter',sans-serif;min-height:
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { key, user: rbxUser, hwid } = req.query as Record<string, string>
 
-  // Buka di browser tanpa key → tampilkan UI docs
   if (!key) {
     const accept = req.headers['accept'] || ''
     if (accept.includes('text/html')) {
@@ -193,7 +201,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (k.owner?.is_banned)
     return res.json({ success: false, message: '❌ Akun kamu dibanned', credit: 'Sanzxmzz' })
 
-  // HWID check
   if (hwid && k.hwid_max > 0) {
     const { data: bound } = await supabaseAdmin.from('key_hwids').select('hwid').eq('key_id', k.id)
     const list = (bound || []).map((x: any) => x.hwid)
@@ -204,7 +211,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  // Log execution
   if (rbxUser && k.assigned_to) {
     let robloxId: number | null = null
     try {
