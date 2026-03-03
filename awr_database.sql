@@ -160,3 +160,25 @@ VALUES (
   '$2a$10$rBnFKhRQXGl9vJ7J8qKEaOzWqQ1pFqF9XYkEsOvHzlY3nJ2vK4Omi',
   'developer'
 ) ON CONFLICT (username) DO NOTHING;
+
+-- GetKey Steps Settings
+CREATE TABLE IF NOT EXISTS getkey_settings (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  url TEXT NOT NULL,
+  duration_seconds INTEGER DEFAULT 30,
+  order_index INTEGER DEFAULT 1,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE getkey_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "svc_getkey" ON getkey_settings FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "pub_getkey"  ON getkey_settings FOR SELECT TO anon USING (is_active = true);
+
+-- Default getkey steps
+INSERT INTO getkey_settings (name, url, duration_seconds, order_index) VALUES
+  ('Buka Link Iklan', 'https://moneyblink.com/st/?api=b238837b14e9101a5fdb857decf8238aa217c3db&url=https://msanzxmzz.vercel.app/', 30, 1),
+  ('Join Saluran Telegram', 'https://t.me/sanzxmzz', 25, 2),
+  ('Follow TikTok', 'https://tiktok.com/@sanzxmzz', 25, 3)
+ON CONFLICT DO NOTHING;
