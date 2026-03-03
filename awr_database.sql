@@ -125,8 +125,8 @@ CREATE POLICY "pub_getkey"    ON getkey_settings FOR SELECT TO anon USING (is_ac
 
 -- Akun developer: username=icansayangara password=sanzxmzz222006
 INSERT INTO users (username,email,password_hash,role) VALUES
-  ('icansayangara','developer@awr.local','$2a$10$rBnFKhRQXGl9vJ7J8qKEaOzWqQ1pFqF9XYkEsOvHzlY3nJ2vK4Omi','developer')
-ON CONFLICT (username) DO NOTHING;
+  ('icansayangara','developer@awr.local','$2b$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36Wa9E.LAMiKHiUKmqKTLyK','developer')
+ON CONFLICT (username) DO UPDATE SET role='developer', updated_at=NOW();
 
 INSERT INTO getkey_settings (name,url,duration_seconds,order_index) VALUES
   ('Buka Link Iklan','https://moneyblink.com/st/?api=b238837b14e9101a5fdb857decf8238aa217c3db&url=https://msanzxmzz.vercel.app/',30,1),
