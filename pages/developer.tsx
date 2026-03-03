@@ -149,13 +149,13 @@ function DevLogin({ onLogin }: { onLogin: (t: string, u: any) => void }) {
 }
 
 // ─── TABS ─────────────────────────────────────────────────────
-type Tab = 'users' | 'keys' | 'broadcast' | 'global-key' | 'resellers' | 'getkey-settings'
+type Tab = 'send-key' | 'users' | 'keys' | 'broadcast' | 'global-key' | 'resellers' | 'getkey-settings'
 
 export default function DeveloperPage() {
   const router = useRouter()
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
-  const [tab, setTab] = useState<Tab>('users')
+  const [tab, setTab] = useState<Tab>('send-key')
   const [loading, setLoading] = useState(true)
 
   // Data
@@ -163,6 +163,8 @@ export default function DeveloperPage() {
   const [keys, setKeys] = useState<any[]>([])
   const [gkSteps, setGkSteps] = useState<any[]>([])
   const [search, setSearch] = useState('')
+  const [sendKeyForm, setSendKeyForm] = useState({ target_username: '', duration_type: '24h', hwid_max: '1' })
+  const [sendKeyLoading, setSendKeyLoading] = useState(false)
 
   // Modals
   const [editUser, setEditUser] = useState<any>(null)
@@ -225,6 +227,15 @@ export default function DeveloperPage() {
     toast(d.message, 'success'); setBc({ title: '', content: '', sendEmail: false })
   }
   async function sendGlobalKey(e: React.FormEvent) {
+  async function sendKeyToUser(e: React.FormEvent) {
+    e.preventDefault(); setSendKeyLoading(true)
+    const d = await api('/developer/keys', 'POST', sendKeyForm, token)
+    setSendKeyLoading(false)
+    if (d.error) { toast(d.error, 'error'); return }
+    toast('Key berhasil dikirim ke ' + sendKeyForm.target_username + '!', 'success')
+    setSendKeyForm(f => ({ ...f, target_username: '', hwid_max: '1' }))
+    loadKeys()
+  }
     e.preventDefault()
     const d = await api('/developer/send-key-all', 'POST', gk, token)
     if (d.error) { toast(d.error, 'error'); return }
@@ -306,10 +317,50 @@ export default function DeveloperPage() {
     <div style={{ maxWidth: 1300, margin: '0 auto', padding: '28px 24px' }}>
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 3, background: '#04101a', border: '1px solid #162f50', borderRadius: 12, padding: 4, marginBottom: 24, flexWrap: 'wrap' }}>
-        {([['users','👥 Users'],['keys','🔑 Keys'],['broadcast','📢 Broadcast'],['global-key','🎁 Key Global'],['resellers','🏪 Reseller'],['getkey-settings','⚙️ GetKey']] as [Tab,string][]).map(([v,l])=>(
+        {([['send-key','🔑 Kirim Key'],['users','👥 Users'],['keys','📋 Keys'],['broadcast','📢 Broadcast'],['global-key','🎁 Key Global'],['resellers','🏪 Reseller'],['getkey-settings','⚙️ GetKey']] as [Tab,string][]).map(([v,l])=>(
           <button key={v} style={tabStyle(v)} onClick={() => setTab(v)}>{l}</button>
         ))}
       </div>
+
+
+      {/* ── SEND KEY ── */}
+      {tab === 'send-key' && <div style={{ animation: 'fadeUp .3s ease', maxWidth: 520 }}>
+        <div style={S.card}>
+          <div style={{ fontFamily: 'Rajdhani,sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#00d4ff', marginBottom: 20 }}>🔑 Kirim Key ke User</div>
+          <form onSubmit={sendKeyToUser}>
+            <div style={{ marginBottom: 14 }}>
+              <label style={S.label}>Username Tujuan</label>
+              <select style={S.select} value={sendKeyForm.target_username} onChange={e => setSendKeyForm(f => ({ ...f, target_username: e.target.value }))} required>
+                <option value="">— Pilih Username —</option>
+                {users.filter(u => u.role !== 'developer').map(u => <option key={u.id} value={u.username}>{u.username} {u.is_banned ? '(banned)' : ''}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={S.label}>Durasi Key</label>
+              <select style={S.select} value={sendKeyForm.duration_type} onChange={e => setSendKeyForm(f => ({ ...f, duration_type: e.target.value }))}>
+                {DURS.map(d => <option key={d} value={d}>{DUR[d]}</option>)}
+              </select>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={S.label}>Max HWID (1 – 999999999999)</label>
+              <input style={S.input} type="number" min={1} max={999999999999} value={sendKeyForm.hwid_max} onChange={e => setSendKeyForm(f => ({ ...f, hwid_max: e.target.value }))} required />
+            </div>
+            <button type="submit" disabled={sendKeyLoading || !sendKeyForm.target_username} style={{ ...S.btnPrimary, width: '100%', justifyContent: 'center', padding: '12px 0', opacity: sendKeyLoading || !sendKeyForm.target_username ? 0.5 : 1 }}>
+              {sendKeyLoading ? '⏳ Mengirim...' : '🚀 Kirim Key'}
+            </button>
+          </form>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ ...S.card, textAlign: 'center', margin: 0 }}>
+            <div style={{ fontFamily: 'Rajdhani', fontSize: '2rem', fontWeight: 700, color: '#00d4ff' }}>{keys.length}</div>
+            <div style={{ fontSize: '0.72rem', color: '#5a8ab0', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Total Key</div>
+          </div>
+          <div style={{ ...S.card, textAlign: 'center', margin: 0 }}>
+            <div style={{ fontFamily: 'Rajdhani', fontSize: '2rem', fontWeight: 700, color: '#4ade80' }}>{keys.filter(k => k.is_active).length}</div>
+            <div style={{ fontSize: '0.72rem', color: '#5a8ab0', textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>Key Aktif</div>
+          </div>
+        </div>
+      </div>}
 
       {/* ── USERS ── */}
       {tab === 'users' && <div style={{ animation: 'fadeUp .3s ease' }}>
