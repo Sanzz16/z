@@ -56,9 +56,20 @@ export default function DevPage(){
   const [editStep,setEditStep]=useState<any>(null)
 
   useEffect(()=>{
-    const saved=localStorage.getItem('awr_dev_token')
-    if(saved){api('/user/profile','GET',undefined,saved).then(d=>{if(d.user?.role==='developer'){setToken(saved);setUser(d.user)}else localStorage.removeItem('awr_dev_token');setBooting(false)})}
-    else setBooting(false)
+    const devTok = localStorage.getItem('awr_dev_token')
+    const mainTok = localStorage.getItem('awr_token') || sessionStorage.getItem('awr_token')
+    const saved = devTok || mainTok
+    if(saved){
+      api('/user/profile','GET',undefined,saved).then(d=>{
+        if(d.user?.role==='developer'){
+          setToken(saved); setUser(d.user)
+          if(!devTok) localStorage.setItem('awr_dev_token', saved)
+        } else {
+          localStorage.removeItem('awr_dev_token')
+        }
+        setBooting(false)
+      })
+    } else { setBooting(false) }
   },[])
 
   useEffect(()=>{if(token){loadUsers();loadKeys();loadGkSteps()}},[token])

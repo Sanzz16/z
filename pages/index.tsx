@@ -427,7 +427,15 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
 
   async function saveProfile() {
     setSaving(true)
-    const d = await api('/user/profile','PATCH',ef,token)
+    const payload:any = {
+      username: ef.username,
+      roblox_username: ef.roblox_username,
+      avatar_url: ef.avatar_url,
+      background_url: ef.background_url,
+      background_type: ef.background_type,
+    }
+    if (ef.password && ef.password.length >= 6) payload.password = ef.password
+    const d = await api('/user/profile','PATCH',payload,token)
     setSaving(false)
     if(d.error){toast(d.error,'error'); return}
     toast('Profil berhasil diupdate!','success')
