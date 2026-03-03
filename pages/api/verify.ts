@@ -17,9 +17,9 @@ body{background:#050d1a;color:#c8dff0;font-family:'Inter',sans-serif;min-height:
 .bg-orb{position:fixed;border-radius:50%;filter:blur(120px);pointer-events:none;z-index:0}
 .orb1{width:500px;height:500px;background:rgba(0,80,200,.12);top:-150px;right:-100px}
 .orb2{width:400px;height:400px;background:rgba(0,200,255,.07);bottom:-100px;left:-100px}
-.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:48px 24px 80px}
-.header{text-align:center;margin-bottom:48px}
-.logo{font-family:'Rajdhani',sans-serif;font-size:3.2rem;font-weight:700;letter-spacing:6px;background:linear-gradient(135deg,#00aaff,#0af,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
+.wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:40px 20px 72px}
+.header{text-align:center;margin-bottom:36px}
+.logo{font-family:'Rajdhani',sans-serif;font-size:2.6rem;font-weight:700;letter-spacing:5px;background:linear-gradient(135deg,#00aaff,#0af,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1}
 .logo-sub{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:#3a6a8a;letter-spacing:4px;text-transform:uppercase;margin-top:6px}
 .badge-live{display:inline-flex;align-items:center;gap:6px;background:rgba(0,200,80,.08);border:1px solid rgba(0,200,80,.2);border-radius:99px;padding:4px 14px;font-size:.7rem;color:#4ade80;letter-spacing:1px;text-transform:uppercase;margin-top:16px}
 .dot{width:7px;height:7px;background:#22c55e;border-radius:50%;animation:pulse 1.4s ease-in-out infinite}
@@ -33,21 +33,21 @@ body{background:#050d1a;color:#c8dff0;font-family:'Inter',sans-serif;min-height:
 .ep-url span{color:#5a8ab0}
 .card-body{padding:18px 20px}
 .ptitle{font-size:.65rem;font-weight:600;color:#3a6a8a;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
-.prow{display:grid;grid-template-columns:110px 80px 1fr;gap:10px;padding:10px 0;border-bottom:1px solid rgba(26,58,92,.4);align-items:start}
+.prow{display:grid;grid-template-columns:100px 72px 1fr;gap:8px;padding:10px 0;border-bottom:1px solid rgba(26,58,92,.4);align-items:start}
 .prow:last-child{border-bottom:none}
 .pname{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:#00d4ff}
 .preq{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.5px;text-align:center;align-self:center}
 .req{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
 .opt{background:rgba(100,116,139,.1);color:#94a3b8;border:1px solid rgba(100,116,139,.2)}
 .pdesc{font-size:.78rem;color:#6b9db8;line-height:1.5}
-.json{background:#04101a;border-radius:12px;padding:20px;font-family:'JetBrains Mono',monospace;font-size:.8rem;line-height:1.9;border:1px solid #162f50;white-space:pre}
+.json{background:#04101a;border-radius:12px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:.75rem;line-height:1.8;border:1px solid #162f50;white-space:pre;overflow-x:auto}
 .ln{color:#1a4a80;user-select:none;margin-right:12px;font-size:.68rem}
 .jb{color:#5a8ab0}.jk{color:#7dd3fc}.js{color:#86efac}.jse{color:#fca5a5}.jbt{color:#34d399}.jbf{color:#f87171}.jn{color:#6b7280;font-style:italic}.jnum{color:#fbbf24}.jc{color:#2a4a6a;font-style:italic}
 .rtabs{display:flex;gap:4px;margin-bottom:-1px}
 .rtab{font-family:'JetBrains Mono',monospace;font-size:.7rem;padding:6px 14px;border-radius:8px 8px 0 0;border:1px solid transparent;letter-spacing:.5px}
 .rtab-ok{background:rgba(34,197,94,.08);color:#4ade80;border-color:rgba(34,197,94,.2)}
 .rtab-err{background:rgba(239,68,68,.08);color:#f87171;border-color:rgba(239,68,68,.2)}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fgrid{display:grid;grid-template-columns:1fr;gap:10px}
 @media(max-width:580px){.fgrid{grid-template-columns:1fr}.prow{grid-template-columns:90px 70px 1fr}}
 .fcard{background:#04101a;border:1px solid #162f50;border-radius:10px;padding:14px}
 .fn{font-family:'JetBrains Mono',monospace;font-size:.78rem;color:#00d4ff;margin-bottom:6px}
@@ -142,12 +142,12 @@ body{background:#050d1a;color:#c8dff0;font-family:'Inter',sans-serif;min-height:
 
   <div class="sec" style="margin-top:28px">Possible Errors</div>
   <div class="card err-table">
-    <div class="erow"><span class="emsg">&#9888; Key tidak boleh kosong</span><span class="edesc">Parameter ?key= tidak ada / kosong</span></div>
-    <div class="erow"><span class="emsg">&#10060; Key tidak ditemukan</span><span class="edesc">Key tidak ada di database</span></div>
-    <div class="erow"><span class="emsg">&#10060; Key sudah dinonaktifkan</span><span class="edesc">Key di-disable oleh developer/reseller</span></div>
-    <div class="erow"><span class="emsg">&#10060; Key sudah expired</span><span class="edesc">Tanggal expires_at sudah lewat</span></div>
-    <div class="erow"><span class="emsg">&#10060; Akun kamu dibanned</span><span class="edesc">Pemilik key terkena banned</span></div>
-    <div class="erow"><span class="emsg">&#10060; HWID limit tercapai</span><span class="edesc">Jumlah device sudah mencapai hwid_max</span></div>
+    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#9888; Key tidak boleh kosong</span><span class="edesc">Parameter ?key= tidak ada / kosong</span></div>
+    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Key tidak ditemukan</span><span class="edesc">Key tidak ada di database</span></div>
+    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Key sudah dinonaktifkan</span><span class="edesc">Key di-disable oleh developer/reseller</span></div>
+    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Key sudah expired</span><span class="edesc">Tanggal expires_at sudah lewat</span></div>
+    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; Akun kamu dibanned</span><span class="edesc">Pemilik key terkena banned</span></div>
+    <div class="erow" style="display:flex;flex-direction:column;gap:4px;padding:12px 20px;border-bottom:1px solid rgba(26,58,92,.35)"><span class="emsg">&#10060; HWID limit tercapai</span><span class="edesc">Jumlah device sudah mencapai hwid_max</span></div>
   </div>
 
   <div class="sec" style="margin-top:28px">Credit</div>
