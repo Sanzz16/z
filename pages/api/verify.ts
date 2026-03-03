@@ -44,9 +44,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     .update({ times_used: (k.times_used || 0) + 1, is_used: true }).eq('id', k.id)
 
   return res.json({
-    success: true, message: '✅ Key valid!',
-    key: k.key_value, expires_at: k.expires_at,
-    hwid_max: k.hwid_max, duration_type: k.duration_type,
-    username: k.owner?.username || null
+    success: true,
+    message: '✅ Key valid!',
+    key: k.key_value,
+    expires_at: k.expires_at || null,       // null = lifetime
+    hwid_max: k.hwid_max,
+    duration_type: k.duration_type,         // "24h","3d","7d","30d","60d","lifetime"
+    username: k.owner?.username || null,
+    is_free_key: k.is_free_key || false
   })
 }
