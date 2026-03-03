@@ -1,28 +1,33 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireDeveloper } from '../../../lib/middleware'
-import { sendBroadcastEmail } from '../../../lib/mailer'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
   const user = await requireDeveloper(req, res)
   if (!user) return
   const { title, content, sendEmail } = req.body
-  if (!title || !content) return res.status(400).json({ error: 'Title dan content wajib' })
+  if (!title?.trim() || !content?.trim())
+    return res.status(400).json({ error: 'Judul dan isi pesan wajib diisi' })
 
-  await supabaseAdmin.from('announcements').insert({ title, content, created_by: user.id })
+  const { error: annErr } = await supabaseAdmin.from('announcements')
+    .insert({ title: title.trim(), content: content.trim(), created_by: user.id, is_active: true })
+  if (annErr) return res.status(500).json({ error: 'Gagal buat announcement: ' + annErr.message })
 
-  const { data: allUsers } = await supabaseAdmin.from('users').select('id, email, username')
+  const { data: allUsers, error: usersErr } = await supabaseAdmin.from('users').select('id, email, username')
+  if (usersErr) return res.status(500).json({ error: 'Gagal ambil users: ' + usersErr.message })
+
   if (allUsers?.length) {
-    await supabaseAdmin.from('notifications').insert(
-      allUsers.map((u: any) => ({ user_id: u.id, title, message: content, type: 'announcement' }))
+    const { error: notifErr } = await supabaseAdmin.from('notifications').insert(
+      allUsers.map((u: any) => ({
+        user_id: u.id,
+        title: `📢 ${title.trim()}`,
+        message: content.trim(),
+        type: 'announcement'
+      }))
     )
-    if (sendEmail) {
-      // Send emails in background (don't block response)
-      Promise.allSettled(
-        allUsers.map((u: any) => sendBroadcastEmail(u.email, u.username, title, content, 'Developer'))
-      )
-    }
+    if (notifErr) console.error('Notif error:', notifErr.message)
   }
-  res.json({ success: true, message: `Broadcast dikirim ke ${allUsers?.length || 0} user${sendEmail ? ' + email' : ''}` })
+
+  res.json({ success: true, message: `Broadcast dikirim ke ${allUsers?.length || 0} user` })
 }
