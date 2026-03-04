@@ -60,7 +60,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       upd.password_hash = await hashPassword(password)
     }
 
-    // updated_at selalu ada, jadi minimal harus ada 2 keys
     if (Object.keys(upd).length <= 1)
       return res.status(400).json({ error: 'Tidak ada perubahan' })
 
