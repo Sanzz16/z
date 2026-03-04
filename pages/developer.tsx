@@ -54,6 +54,47 @@ function Bdg({c,t}:{c:string,t:string}){
   return <span className={`bx ${MAP[c]||'bx-gray'}`}>{t}</span>
 }
 
+function UserSearchInput({users,value,onChange,accentColor='rgba(168,85,247,.2)',accentGlow='rgba(168,85,247,.08)'}:{users:any[],value:string,onChange:(v:string)=>void,accentColor?:string,accentGlow?:string}){
+  const [open,setOpen]=useState(false)
+  const [q,setQ]=useState(value)
+  const ref=useRef<HTMLDivElement>(null)
+  useEffect(()=>{setQ(value)},[value])
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))setOpen(false)}
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h)
+  },[])
+  const filtered=users.filter(u=>u.username?.toLowerCase().includes(q.toLowerCase())).slice(0,8)
+  return(
+    <div ref={ref} style={{position:'relative'}}>
+      <div style={{position:'relative'}}>
+        <input className="dv-fi" placeholder="Cari atau ketik username..." value={q}
+          onChange={e=>{setQ(e.target.value);setOpen(true);if(!e.target.value)onChange('')}}
+          onFocus={()=>setOpen(true)} autoComplete="off" style={{paddingRight:36}}/>
+        <div style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'rgba(140,140,160,.45)'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+      </div>
+      {open&&filtered.length>0&&(
+        <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,right:0,background:'rgba(12,13,18,.98)',border:`1px solid ${accentColor}`,borderRadius:14,overflow:'hidden',zIndex:9999,boxShadow:`0 16px 48px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.04)`,maxHeight:240,overflowY:'auto'}}>
+          {filtered.map((u,i)=>(
+            <div key={u.id} onMouseDown={()=>{onChange(u.username);setQ(u.username);setOpen(false)}}
+              style={{padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:10,borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,.04)':'none',transition:'background .12s'}}
+              onMouseEnter={e=>(e.currentTarget.style.background=accentGlow)}
+              onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+              <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,rgba(124,58,237,.25),rgba(168,85,247,.15))',border:`1px solid ${accentColor}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.78rem',color:'#c77dff',flexShrink:0}}>{u.username?.[0]?.toUpperCase()}</div>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.88rem',color:'#e0e0f0'}}>{u.username}</div>
+                {u.is_banned&&<div style={{fontSize:'.65rem',color:'#ff4757',marginTop:1}}>⛔ Banned</div>}
+              </div>
+              {value===u.username&&<div style={{color:'#32ff7e',fontSize:'.75rem'}}>✓</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 type Tab='send-key'|'users'|'keys'|'broadcast'|'global-key'|'resellers'|'getkey-settings'
 
 const DV_CSS=`
@@ -292,10 +333,7 @@ export default function DevPage(){
         <CardSection title="KIRIM KEY KE USER">
           <form onSubmit={sendKey} style={{maxWidth:480}}>
             <div className="dv-fg"><label className="dv-fl">Username Tujuan</label>
-              <select className="dv-fi" value={sendForm.target_username} onChange={e=>setSendForm(f=>({...f,target_username:e.target.value}))} required>
-                <option value="">— Pilih Username —</option>
-                {users.map(u=><option key={u.id} value={u.username}>{u.username}{u.is_banned?' (banned)':''}</option>)}
-              </select>
+              <UserSearchInput users={users} value={sendForm.target_username} onChange={v=>setSendForm(f=>({...f,target_username:v}))}/>
             </div>
             <div className="dv-fg"><label className="dv-fl">Durasi</label>
               <select className="dv-fi" value={sendForm.duration_type} onChange={e=>setSendForm(f=>({...f,duration_type:e.target.value}))}>
