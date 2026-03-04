@@ -632,8 +632,8 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
     }
     reader.readAsText(f)
   }
-  async function upload(e:React.FormEvent) {
-    e.preventDefault(); if(!token){toast('Login dulu!','error');return}
+  async function upload(e?:React.FormEvent) {
+    if(e) e.preventDefault(); if(!token){toast('Login dulu!','error');return}
     if(!form.data.trim()){toast('Data JSON wajib diisi','error');return}
     let parsed; try{parsed=JSON.parse(form.data)}catch{toast('Format JSON tidak valid — pastikan format benar','error');return}
     const d = await api('/routes','POST',{...form,data:parsed},token)
@@ -688,12 +688,15 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
             </label>
             <textarea className="form-textarea" placeholder='[{"x":0,"y":5,"z":0}]' value={form.data}
               onPaste={e=>{
-                // Optimized paste: read from clipboard directly
                 const text = e.clipboardData.getData('text')
                 e.preventDefault()
                 setForm(f=>({...f,data:text}))
+                toast('Data JSON ditempel!','success')
               }}
-              onChange={e=>setForm(f=>({...f,data:e.target.value}))}
+              onChange={e=>{
+                const val = e.target.value
+                setForm(f=>({...f,data:val}))
+              }}
               style={{fontFamily:'monospace',fontSize:'.78rem',minHeight:120}}/>
             <div style={{fontSize:'.7rem',color:'var(--text3)',marginTop:4}}>💡 Paste JSON disini atau upload file di atas.</div>
           </div>
@@ -705,7 +708,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
           </div>
           {!form.is_public&&<div className="form-group"><label className="form-label">Password Akses</label><input className="form-input" placeholder="Password..." value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))}/></div>}
           <div style={{display:'flex',gap:10}}>
-            <button type="button" className="btn btn-primary" style={{flex:1}} onClick={e=>{e.preventDefault();upload(e as any)}}>⬆️ Upload</button>
+            <button type="button" className="btn btn-primary" style={{flex:1}} onClick={()=>upload()}>⬆️ Upload</button>
             <button type="button" className="btn btn-ghost" onClick={()=>setUploadOpen(false)}>Batal</button>
           </div>
         </div>
@@ -873,9 +876,15 @@ export default function App() {
   const [showBan, setShowBan] = useState(false)
   const [banReason, setBanReason] = useState('')
   const [support, setSupport] = useState<any>(null)
+  const [redirectToLanding, setRedirectToLanding] = useState(false)
 
   useEffect(()=>{
-    const t = setTimeout(()=>setReady(true), 2400)
+    const t = setTimeout(()=>{
+      setReady(true)
+      // Setelah loading selesai, cek apakah ada token
+      const saved = localStorage.getItem('awr_token')||sessionStorage.getItem('awr_token')
+      if(!saved) setRedirectToLanding(true)
+    }, 2400)
     const saved = localStorage.getItem('awr_token')||sessionStorage.getItem('awr_token')
     if(saved) {
       api('/user/profile','GET',undefined,saved).then(d=>{
@@ -893,9 +902,16 @@ export default function App() {
 
   function onAuth(t:string,u:User){
     if((u as any).is_banned){setBanReason((u as any).ban_reason||'');setShowBan(true);return}
-    setToken(t);setUser(u);setPage('dash')
+    setToken(t);setUser(u);setPage('dash');setRedirectToLanding(false)
   }
-  function logout(){localStorage.removeItem('awr_token');sessionStorage.removeItem('awr_token');setToken(null);setUser(null);toast('Sampai jumpa!','info')}
+  function logout(){localStorage.removeItem('awr_token');sessionStorage.removeItem('awr_token');setToken(null);setUser(null);toast('Sampai jumpa!','info');setRedirectToLanding(true)}
+
+  // Setelah loading, jika tidak ada token → redirect ke landing page
+  useEffect(()=>{
+    if(ready && redirectToLanding && !token) {
+      router.push('/landing')
+    }
+  },[ready, redirectToLanding, token])
 
   return (
     <>
@@ -912,8 +928,11 @@ export default function App() {
 
       {showBan&&<BanDialog reason={banReason} support={support} onClose={()=>setShowBan(false)}/>}
 
-      {!token
-        ?<AuthPage onAuth={onAuth}/>
+      {/* Setelah loading: jika tidak ada token, sedang redirect ke landing */}
+      {!token && ready && !showBan
+        ?<div style={{position:'relative',zIndex:1,minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+           <div style={{textAlign:'center',color:'rgba(100,140,200,.4)',fontFamily:'Rajdhani,sans-serif',fontSize:'.9rem',letterSpacing:1}}>Mengarahkan...</div>
+         </div>
         :<div style={{position:'relative',zIndex:1,minHeight:'100vh'}}>
           <nav className="navbar">
             <div className="navbar-brand" onClick={()=>setPage('dash')}>AWR</div>

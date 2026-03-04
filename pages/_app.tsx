@@ -18,17 +18,19 @@ function GlobalMusicPlayer() {
 
   const loadMusic = useCallback(() => {
     fetch('/api/developer/music').then(r => r.json()).then(d => {
-      if (d.music && d.music.is_active && d.music.url) {
+      if (d.music && d.music.is_active) {
+        const src = (d.music.type === 'upload' && d.music.file_data) ? d.music.file_data : d.music.url
+        if (!src) { setVisible(false); return }
         setTitle(d.music.title || 'AWR Music')
         setVolume(d.music.volume || 50)
         setVisible(true)
-        if (d.music.url !== musicSrc) {
-          setMusicSrc(d.music.url)
+        if (src !== musicSrc) {
+          setMusicSrc(src)
           if (!_globalAudio) {
-            _globalAudio = new Audio(d.music.url)
+            _globalAudio = new Audio(src)
             _globalAudio.loop = true
           } else {
-            _globalAudio.src = d.music.url
+            _globalAudio.src = src
           }
           _globalAudio.volume = (d.music.volume || 50) / 100
         }

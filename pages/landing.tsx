@@ -50,9 +50,24 @@ function AuthDialog({ onClose, onAuth }: { onClose: () => void; onAuth: (t: stri
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
   const [showForgot, setShowForgot] = useState(false)
+  const [forgotStep, setForgotStep] = useState<'email'|'code'>('email')
   const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotCode, setForgotCode] = useState('')
+  const [forgotNewPw, setForgotNewPw] = useState('')
   const [forgotMsg, setForgotMsg] = useState('')
   const [forgotLoading, setForgotLoading] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+
+  async function submitReset(e: React.FormEvent) {
+    e.preventDefault(); setResetLoading(true)
+    const r = await fetch('/api/auth/reset-password', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail, code: forgotCode, newPassword: forgotNewPw })
+    })
+    const d = await r.json(); setResetLoading(false)
+    if (d.error) { setResetMsg('Error: ' + d.error) } else { setResetMsg(d.message || 'Password berhasil direset! Silakan login.') }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setErr(''); setLoading(true)
@@ -141,17 +156,38 @@ function AuthDialog({ onClose, onAuth }: { onClose: () => void; onAuth: (t: stri
             </button>
           </form>
         </> : <>
-          <button onClick={() => { setShowForgot(false); setForgotMsg('') }} style={{ background: 'none', border: 'none', color: '#4facfe', cursor: 'pointer', fontSize: '.82rem', marginBottom: 18 }}>← Kembali</button>
+          <button onClick={() => { setShowForgot(false); setForgotMsg(''); setForgotStep('email'); setResetMsg('') }} style={{ background: 'none', border: 'none', color: '#4facfe', cursor: 'pointer', fontSize: '.82rem', marginBottom: 18 }}>← Kembali</button>
           <div style={{ marginBottom: 14, fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, fontSize: '1.05rem', color: '#c8e0ff' }}>Reset Password</div>
-          {forgotMsg ? <div style={{ background: 'rgba(50,130,255,.08)', border: '1px solid rgba(50,130,255,.2)', borderRadius: 10, padding: '12px 16px', fontSize: '.84rem', color: '#7ab8ff', lineHeight: 1.5 }}>{forgotMsg}</div> : (
-            <form onSubmit={submitForgot}>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', fontSize: '.75rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Email Terdaftar</label>
-                <input style={inpStyle} type="email" placeholder="email@..." value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required />
+          
+          {resetMsg ? (
+            <div style={{ background: resetMsg.startsWith('Error') ? 'rgba(255,60,60,.08)' : 'rgba(50,130,255,.08)', border: `1px solid ${resetMsg.startsWith('Error') ? 'rgba(255,60,60,.2)' : 'rgba(50,130,255,.2)'}`, borderRadius: 10, padding: '12px 16px', fontSize: '.84rem', color: resetMsg.startsWith('Error') ? '#ff8888' : '#7ab8ff', lineHeight: 1.5 }}>
+              {resetMsg}
+              {!resetMsg.startsWith('Error') && <div style={{ marginTop: 10 }}><button onClick={() => { setShowForgot(false); setForgotStep('email'); setResetMsg('') }} style={{ ...btnStyle, padding: '9px 20px', width: 'auto', fontSize: '.85rem', display: 'inline-block' }}>Login Sekarang</button></div>}
+            </div>
+          ) : forgotStep === 'email' ? (
+            forgotMsg ? (
+              <div>
+                <div style={{ background: 'rgba(50,130,255,.08)', border: '1px solid rgba(50,130,255,.2)', borderRadius: 10, padding: '12px 16px', fontSize: '.84rem', color: '#7ab8ff', lineHeight: 1.5, marginBottom: 16 }}>{forgotMsg}</div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: '.75rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Masukkan Kode (6 digit)</label>
+                  <input style={inpStyle} placeholder="123456" maxLength={6} value={forgotCode} onChange={e => setForgotCode(e.target.value)} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: '.75rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Password Baru</label>
+                  <input style={inpStyle} type="password" placeholder="Password baru (min 6 karakter)..." value={forgotNewPw} onChange={e => setForgotNewPw(e.target.value)} />
+                </div>
+                <button onClick={submitReset} disabled={resetLoading || !forgotCode || !forgotNewPw} style={btnStyle}>{resetLoading ? 'Mereset...' : 'Reset Password'}</button>
               </div>
-              <button type="submit" disabled={forgotLoading} style={btnStyle}>{forgotLoading ? 'Mengirim...' : 'Kirim Kode Reset'}</button>
-            </form>
-          )}
+            ) : (
+              <form onSubmit={submitForgot}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontSize: '.75rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Email Terdaftar</label>
+                  <input style={inpStyle} type="email" placeholder="email@..." value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required />
+                </div>
+                <button type="submit" disabled={forgotLoading} style={btnStyle}>{forgotLoading ? 'Mengirim...' : 'Kirim Kode Reset ke Email'}</button>
+              </form>
+            )
+          ) : null}
         </>}
       </div>
     </div>
@@ -231,12 +267,44 @@ function FeedbackSection() {
   const [feedbacks, setFeedbacks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(new Date())
+  const [form, setForm] = useState({ type: 'Feedback', message: '', rating: 5, roblox_username: '', website_username: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
     fetch('/api/feedback').then(r => r.json()).then(d => { if (d.feedbacks) setFeedbacks(d.feedbacks); setLoading(false) })
     const t = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
+
+  async function submitFeedback(e: React.FormEvent) {
+    e.preventDefault(); setSubmitting(true)
+    const r = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: form.type,
+        message: form.message,
+        rating: form.rating,
+        roblox_username: form.roblox_username,
+        website_username: form.website_username || undefined,
+      })
+    })
+    const d = await r.json(); setSubmitting(false)
+    if (d.error) { alert('Error: ' + d.error); return }
+    setSubmitted(true)
+    setForm({ type: 'Feedback', message: '', rating: 5, roblox_username: '', website_username: '' })
+    // Reload feedbacks
+    fetch('/api/feedback').then(r => r.json()).then(d => { if (d.feedbacks) setFeedbacks(d.feedbacks) })
+    setTimeout(() => setSubmitted(false), 4000)
+  }
+
+  function maskRoblox(name: string) {
+    if (!name) return '***'
+    if (name.length <= 4) return name[0] + '*'.repeat(name.length - 1)
+    const a = Math.ceil(name.length / 3), b = Math.ceil(name.length / 3)
+    return name.slice(0, a) + '*'.repeat(name.length - a - b) + name.slice(-b)
+  }
 
   function formatRealtime(dateStr: string) {
     const d = new Date(dateStr)
@@ -246,13 +314,66 @@ function FeedbackSection() {
 
   const STARS = [1, 2, 3, 4, 5]
   const typeColor: Record<string, string> = { 'Report Bug': '#ff5c6a', 'Saran': '#4facfe', 'Feedback': '#32ff7e' }
+  const TYPES = ['Feedback', 'Saran', 'Report Bug']
 
   return (
     <div>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <div style={{ fontFamily: 'Orbitron,sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#60c0ff', marginBottom: 8 }}>FEEDBACK PENGGUNA</div>
-        <div style={{ fontSize: '.84rem', color: 'rgba(120,160,220,.5)' }}>Feedback langsung dari Script AWR · public</div>
+        <div style={{ fontSize: '.84rem', color: 'rgba(120,160,220,.5)' }}>Feedback langsung dari pengguna AWR · public</div>
       </div>
+
+      {/* Form Submit Feedback */}
+      <div style={{ maxWidth: 600, margin: '0 auto 40px', background: 'rgba(10,15,30,.7)', border: '1px solid rgba(50,120,255,.18)', borderRadius: 20, padding: '24px 24px 20px' }}>
+        <div style={{ fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, fontSize: '1rem', color: '#60c0ff', marginBottom: 18 }}>📝 Kirim Feedback / Report</div>
+        {submitted ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: '#32ff7e', fontSize: '.9rem' }}>✅ Feedback berhasil dikirim! Terima kasih.</div>
+        ) : (
+          <form onSubmit={submitFeedback}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '.72rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Tipe Feedback</label>
+                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                  style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(50,120,255,.15)', borderRadius: 10, padding: '9px 12px', color: '#d0e4ff', fontSize: '.875rem', outline: 'none' }}>
+                  {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '.72rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Username Akun Website</label>
+                <input value={form.website_username} onChange={e => setForm(f => ({ ...f, website_username: e.target.value }))} placeholder="Optional..."
+                  style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(50,120,255,.15)', borderRadius: 10, padding: '9px 12px', color: '#d0e4ff', fontSize: '.875rem', outline: 'none' }} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: '.72rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Username Roblox</label>
+              <input value={form.roblox_username} onChange={e => setForm(f => ({ ...f, roblox_username: e.target.value }))} placeholder="Username Roblox kamu..." required
+                style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(50,120,255,.15)', borderRadius: 10, padding: '9px 12px', color: '#d0e4ff', fontSize: '.875rem', outline: 'none' }} />
+              <div style={{ fontSize: '.68rem', color: 'rgba(100,140,200,.35)', marginTop: 4 }}>🔒 Nama akan otomatis disensor (mis: San***zzz)</div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: '.72rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 5 }}>Pesan</label>
+              <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Tulis feedback kamu..." required
+                style={{ width: '100%', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(50,120,255,.15)', borderRadius: 10, padding: '9px 12px', color: '#d0e4ff', fontSize: '.875rem', outline: 'none', minHeight: 80, resize: 'vertical' }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: '.72rem', color: 'rgba(120,150,210,.6)', fontWeight: 600, marginBottom: 8 }}>Rating</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {STARS.map(s => (
+                  <button key={s} type="button" onClick={() => setForm(f => ({ ...f, rating: s }))}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', opacity: s <= form.rating ? 1 : 0.2, transition: 'all .1s' }}>⭐</button>
+                ))}
+                <span style={{ fontSize: '.82rem', color: 'rgba(120,160,200,.5)', alignSelf: 'center', marginLeft: 4 }}>{form.rating}/5</span>
+              </div>
+            </div>
+            <button type="submit" disabled={submitting}
+              style={{ width: '100%', background: 'linear-gradient(135deg,#1a5fd4,#3a8fff)', color: '#fff', border: 'none', borderRadius: 12, padding: '12px', fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, fontSize: '.95rem', cursor: 'pointer', boxShadow: '0 4px 20px rgba(30,100,255,.3)', opacity: submitting ? .6 : 1 }}>
+              {submitting ? 'Mengirim...' : '📤 Kirim Feedback'}
+            </button>
+          </form>
+        )}
+      </div>
+
+      {/* Feed List */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 40, color: 'rgba(100,140,200,.4)' }}>Memuat...</div>
       ) : feedbacks.length === 0 ? (
@@ -272,11 +393,9 @@ function FeedbackSection() {
                     border: `1px solid rgba(${f.type === 'Report Bug' ? '255,92,106' : f.type === 'Saran' ? '79,172,254' : '50,255,126'},.25)`,
                     color: typeColor[f.type] || '#8888aa', borderRadius: 20, padding: '2px 10px', fontSize: '.68rem', fontWeight: 700, letterSpacing: .5
                   }}>{f.type}</span>
-                  <span style={{ fontSize: '.78rem', color: 'rgba(120,160,200,.5)' }}>
-                    {f.website_username ? `@${f.website_username}` : '—'}
-                  </span>
+                  {f.website_username && <span style={{ fontSize: '.78rem', color: 'rgba(120,160,200,.5)' }}>@{f.website_username}</span>}
                   <span style={{ fontSize: '.72rem', color: 'rgba(100,140,190,.4)' }}>
-                    Roblox: <span style={{ color: 'rgba(160,180,220,.5)' }}>{f.roblox_name_masked}</span>
+                    Roblox: <span style={{ color: 'rgba(160,180,220,.5)' }}>{f.roblox_name_masked || maskRoblox(f.roblox_username || '')}</span>
                   </span>
                 </div>
                 <div style={{ display: 'flex', gap: 2 }}>
@@ -284,8 +403,8 @@ function FeedbackSection() {
                 </div>
               </div>
               <div style={{ fontSize: '.84rem', color: '#b8cce8', lineHeight: 1.6, marginBottom: 10 }}>{f.message}</div>
-              <div style={{ fontSize: '.7rem', fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, color: '#c8a020', letterSpacing: .5 }}>
-                🕐 {formatRealtime(f.created_at)}
+              <div style={{ fontSize: '.7rem', fontFamily: 'Orbitron,sans-serif', fontWeight: 700, color: '#f5c542', letterSpacing: .5 }}>
+                📅 {formatRealtime(f.created_at)}
               </div>
             </div>
           ))}
