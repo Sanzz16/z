@@ -2,6 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/middleware'
 
+// Increase body size limit for route data
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } }
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
     const token = req.headers.authorization?.slice(7)
@@ -22,20 +25,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { data } = await query
     return res.json({ routes: data || [] })
   }
+
   if (req.method === 'POST') {
     const user = await requireAuth(req, res)
     if (!user) return
     const { name, description, game_name, data, is_public, password, thumbnail_url } = req.body
     if (!name || !data) return res.status(400).json({ error: 'Nama dan data wajib' })
+    
+    // Support string data (JSON string) or already-parsed object
+    let parsedData = data
+    if (typeof data === 'string') {
+      try { parsedData = JSON.parse(data) } catch {
+        return res.status(400).json({ error: 'Format data JSON tidak valid' })
+      }
+    }
+    
     const { data: route, error } = await supabaseAdmin.from('routes').insert({
-      name, description, game_name, data, uploaded_by: user.id,
+      name, description, game_name,
+      data: parsedData,
+      uploaded_by: user.id,
       is_public: is_public !== false,
       password: (!is_public && password) ? password : null,
       has_password: !is_public && !!password,
       thumbnail_url: thumbnail_url || null
     }).select().single()
-    if (error) return res.status(500).json({ error: 'Gagal upload route' })
+
+    if (error) return res.status(500).json({ error: 'Gagal upload route: ' + error.message })
     return res.json({ route })
   }
+
   res.status(405).end()
 }
