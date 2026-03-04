@@ -627,7 +627,32 @@ export default function DevPage(){
       {tab==='music'&&<div style={{maxWidth:520}}><CardSection title="MUSIK OTOMATIS — Semua Halaman">
         <div style={{fontSize:'.82rem',color:'#444455',marginBottom:18,marginTop:-10}}>Atur musik yang auto-play di semua halaman. User tidak perlu reload untuk mengubah lagu.</div>
         <div className="dv-fg"><label className="dv-fl">Judul Musik</label><input className="dv-fi" placeholder="Nama lagu..." value={music.title} onChange={e=>setMusic(m=>({...m,title:e.target.value}))}/></div>
-        <div className="dv-fg"><label className="dv-fl">URL Musik (YouTube embed / MP3 / SoundCloud)</label><input className="dv-fi" placeholder="https://... (gunakan MP3 direct link)" value={music.url} onChange={e=>setMusic(m=>({...m,url:e.target.value}))}/></div>
+        
+        {/* Music source: URL or upload */}
+        <div className="dv-fg">
+          <label className="dv-fl">Sumber Musik</label>
+          <div style={{display:'flex',gap:8,marginBottom:10}}>
+            <button type="button" onClick={()=>setMusic(m=>({...m,type:'url'}))} style={{flex:1,padding:'9px',borderRadius:10,border:`1px solid ${music.type==='url'?'rgba(168,85,247,.5)':'rgba(255,255,255,.09)'}`,background:music.type==='url'?'rgba(168,85,247,.1)':'rgba(255,255,255,.03)',color:music.type==='url'?'#c77dff':'#666677',cursor:'pointer',fontSize:'.82rem',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>🔗 URL Link</button>
+            <button type="button" onClick={()=>setMusic(m=>({...m,type:'upload'}))} style={{flex:1,padding:'9px',borderRadius:10,border:`1px solid ${music.type==='upload'?'rgba(168,85,247,.5)':'rgba(255,255,255,.09)'}`,background:music.type==='upload'?'rgba(168,85,247,.1)':'rgba(255,255,255,.03)',color:music.type==='upload'?'#c77dff':'#666677',cursor:'pointer',fontSize:'.82rem',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>📁 Upload File</button>
+          </div>
+          {music.type==='url'
+            ?<input className="dv-fi" placeholder="https://... (MP3 direct link)" value={music.url} onChange={e=>setMusic(m=>({...m,url:e.target.value}))}/>
+            :<label style={{display:'flex',alignItems:'center',gap:10,background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.09)',borderRadius:12,padding:'12px 16px',cursor:'pointer',color:'#9090a8',fontSize:'.85rem'}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              {music.url&&music.url.startsWith('data:')?'✅ File siap ('+music.title+')':'Klik untuk upload file audio (MP3, OGG, WAV)'}
+              <input type="file" accept="audio/*" style={{display:'none'}} onChange={e=>{
+                const f=e.target.files?.[0]; if(!f) return
+                if(f.size>20*1024*1024){toast('File max 20MB','error');return}
+                const r=new FileReader(); r.onload=ev=>{
+                  const data=ev.target?.result as string||''
+                  setMusic(m=>({...m,url:data,title:m.title||f.name.replace(/\.[^.]+$/,'')}))
+                  toast('File audio siap!','success')
+                }; r.readAsDataURL(f)
+              }}/>
+            </label>
+          }
+        </div>
+
         <div className="dv-fg"><label className="dv-fl">Volume Default ({music.volume}%)</label><input type="range" min={0} max={100} value={music.volume} onChange={e=>setMusic(m=>({...m,volume:+e.target.value}))} style={{width:'100%',accentColor:'#a855f7',marginTop:6}}/></div>
         <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
           <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',color:'#c77dff',fontSize:'.9rem'}}>
@@ -639,7 +664,7 @@ export default function DevPage(){
           {musicSaving?'Menyimpan...':'💾 Simpan Pengaturan Musik'}
         </button>
         <div style={{marginTop:14,fontSize:'.75rem',color:'#333344',lineHeight:1.6}}>
-          💡 Tips: Gunakan link MP3 direct (contoh: dari pCloud, Dropbox, atau hosting lain). YouTube tidak support direct embed audio.
+          💡 URL: Gunakan link MP3 direct. Upload: File audio langsung dari perangkat (max 20MB).
         </div>
       </CardSection></div>}
 

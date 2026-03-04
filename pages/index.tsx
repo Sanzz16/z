@@ -102,11 +102,11 @@ function Particles() {
         p.x+=p.vx; p.y+=p.vy
         if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0
         ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2)
-        ctx.fillStyle=`rgba(255,77,255,${p.a*.32})`; ctx.fill()
+        ctx.fillStyle=`rgba(50,160,255,${p.a*.55})`; ctx.fill()
       })
       for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++) {
         const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy)
-        if(d<130){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(79,172,254,${(1-d/130)*.07})`;ctx.lineWidth=.5;ctx.stroke()}
+        if(d<130){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(30,130,255,${(1-d/130)*.14})`;ctx.lineWidth=.6;ctx.stroke()}
       }
       raf=requestAnimationFrame(draw)
     }
@@ -397,6 +397,15 @@ function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
             <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{showPw?(<><path d='M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94'/><path d='M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19'/><line x1='1' y1='1' x2='23' y2='23'/></>):(<><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></>)}</svg></button>
           </div>
         </div>
+        <div className="form-group">
+          <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',padding:'10px 14px',background:'var(--card2)',border:'1px solid var(--border)',borderRadius:12}}>
+            <input type="checkbox" checked={(ef as any).leaderboard_public!==false} onChange={e=>setEf(f=>({...f,leaderboard_public:e.target.checked}))} style={{accentColor:'var(--accent)',width:16,height:16}}/>
+            <div>
+              <div style={{fontSize:'.85rem',color:'var(--text)',fontWeight:600}}>Tampilkan nama di Leaderboard</div>
+              <div style={{fontSize:'.75rem',color:'var(--text3)',marginTop:2}}>Jika off, namamu akan disensor (mis: San***zz)</div>
+            </div>
+          </label>
+        </div>
         <div style={{display:'flex',gap:10}}>
           <button className="btn btn-primary" style={{flex:1}} onClick={saveProfile} disabled={saving}>
             {saving?<><span className="spinner"/>Menyimpan...</>:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Simpan</>}
@@ -665,9 +674,9 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
 
       {/* Upload */}
       <Modal open={uploadOpen} onClose={()=>setUploadOpen(false)} title="⬆️ Upload Route" size="lg">
-        <form onSubmit={upload}>
+        <div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div className="form-group"><label className="form-label">Nama *</label><input className="form-input" placeholder="Nama route..." value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} required/></div>
+            <div className="form-group"><label className="form-label">Nama *</label><input className="form-input" placeholder="Nama route..." value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
             <div className="form-group"><label className="form-label">Nama Game</label><input className="form-input" placeholder="Game..." value={form.game_name} onChange={e=>setForm(f=>({...f,game_name:e.target.value}))}/></div>
           </div>
           <div className="form-group"><label className="form-label">Deskripsi</label><input className="form-input" placeholder="Deskripsi singkat..." value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}/></div>
@@ -678,12 +687,15 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
               📁 Upload File <input type="file" accept=".json,.txt" style={{display:'none'}} onChange={onFileChange}/>
             </label>
             <textarea className="form-textarea" placeholder='[{"x":0,"y":5,"z":0}]' value={form.data}
-              onChange={e=>{
-                const v=e.target.value
-                setForm(f=>({...f,data:v}))
+              onPaste={e=>{
+                // Optimized paste: read from clipboard directly
+                const text = e.clipboardData.getData('text')
+                e.preventDefault()
+                setForm(f=>({...f,data:text}))
               }}
-              required style={{fontFamily:'monospace',fontSize:'.78rem',minHeight:120}}/>
-            <div style={{fontSize:'.7rem',color:'var(--text3)',marginTop:4}}>💡 Paste JSON disini atau upload file di atas. Validasi dilakukan saat submit.</div>
+              onChange={e=>setForm(f=>({...f,data:e.target.value}))}
+              style={{fontFamily:'monospace',fontSize:'.78rem',minHeight:120}}/>
+            <div style={{fontSize:'.7rem',color:'var(--text3)',marginTop:4}}>💡 Paste JSON disini atau upload file di atas.</div>
           </div>
           <div className="form-group">
             <label className="form-label">Visibilitas</label>
@@ -693,10 +705,10 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
           </div>
           {!form.is_public&&<div className="form-group"><label className="form-label">Password Akses</label><input className="form-input" placeholder="Password..." value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))}/></div>}
           <div style={{display:'flex',gap:10}}>
-            <button type="submit" className="btn btn-primary" style={{flex:1}}>⬆️ Upload</button>
+            <button type="button" className="btn btn-primary" style={{flex:1}} onClick={e=>{e.preventDefault();upload(e as any)}}>⬆️ Upload</button>
             <button type="button" className="btn btn-ghost" onClick={()=>setUploadOpen(false)}>Batal</button>
           </div>
-        </form>
+        </div>
       </Modal>
 
       {/* Detail */}
@@ -731,20 +743,35 @@ function LeaderboardPage() {
   const [profileModal, setProfileModal] = useState<any>(null)
   useEffect(()=>{api('/leaderboard').then(d=>{if(d.leaderboard)setLb(d.leaderboard);setLoading(false)})},[] as any)
   const medals=['🥇','🥈','🥉'], colors=['var(--gold)','#c0c0c0','#cd7f32']
+
+  function maskUsername(name:string) {
+    if(!name) return '***'
+    if(name.length<=2) return name[0]+'*'
+    if(name.length<=4) return name.slice(0,2)+'*'.repeat(name.length-2)
+    return name.slice(0,3)+'*'.repeat(Math.max(2,name.length-5))+name.slice(-2)
+  }
+
   return (
     <>
       <div style={{marginBottom:28}}>
         <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Leaderboard</div>
-        <div style={{color:'var(--text3)',fontSize:'.85rem',marginTop:4}}>Top executor AWR Script</div>
+        <div style={{color:'var(--text3)',fontSize:'.85rem',marginTop:4}}>Top executor AWR Script · klik nama untuk lihat profil</div>
       </div>
-      <div style={{maxWidth:640}}>
-        {loading?[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:68,marginBottom:10}}/>):lb.map((u,i)=>(
+      <div style={{maxWidth:680}}>
+        {loading?[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:68,marginBottom:10}}/>):lb.map((u,i)=>{
+          const displayName = u.leaderboard_public===false ? maskUsername(u.username) : u.username
+          return (
           <div key={i} className="lb-row" onClick={()=>setProfileModal(u)} style={{animationDelay:`${i*.05}s`,cursor:'pointer',background:i<3?`linear-gradient(135deg,rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.06),transparent)`:'var(--card)',borderColor:i<3?`rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.2)`:'var(--border)'}}>
             <div className="lb-rank" style={{color:i<3?colors[i]:'var(--text2)'}}>{i<3?medals[i]:`#${u.rank}`}</div>
             {/* Avatar */}
-            {u.avatar ? <img src={u.avatar} alt="" style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:`2px solid ${i<3?colors[i]:'rgba(0,140,255,.25)'}`,flexShrink:0}}/> : <div style={{width:36,height:36,borderRadius:'50%',background:'rgba(0,140,255,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',flexShrink:0}}>👤</div>}
+            <div style={{width:38,height:38,borderRadius:'50%',overflow:'hidden',flexShrink:0,border:`2px solid ${i<3?colors[i]:'rgba(0,140,255,.2)'}`,background:'var(--card2)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {(u.avatar_file_url||u.avatar_url)
+                ?<img src={u.avatar_file_url||u.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                :<span style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.85rem',color:'var(--text2)'}}>{displayName[0]?.toUpperCase()||'?'}</span>
+              }
+            </div>
             <div style={{flex:1}}>
-              <div className="lb-name" style={{color:i<3?colors[i]:'var(--text)'}}>{u.username}</div>
+              <div className="lb-name" style={{color:i<3?colors[i]:'var(--text)'}}>{displayName}</div>
               {u.roblox_username&&<div style={{fontSize:'.75rem',color:'var(--text2)',marginTop:2}}>Roblox: {u.roblox_username}</div>}
             </div>
             <div style={{textAlign:'right'}}>
@@ -752,50 +779,122 @@ function LeaderboardPage() {
               <div style={{fontSize:'.65rem',color:'var(--text3)',marginTop:1}}>executions</div>
             </div>
           </div>
-        ))}
+        )})}
         {!loading&&!lb.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:'70px 0'}}><div style={{marginBottom:14,animation:'float 3s ease-in-out infinite',opacity:.2,display:'flex',justifyContent:'center'}}><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21H5a2 2 0 01-2-2v-5"/><path d="M16 21h3a2 2 0 002-2v-9"/><path d="M12 21V11"/><path d="M3 10l9-7 9 7"/></svg></div>Belum ada data</div>}
       </div>
       {/* Profile Modal */}
       <Modal open={!!profileModal} onClose={()=>setProfileModal(null)} title="👤 Profil Player">
         {profileModal&&<div style={{textAlign:'center',padding:'8px 0'}}>
-          {profileModal.avatar?<img src={profileModal.avatar} alt="" style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',border:'3px solid rgba(0,140,255,.4)',marginBottom:12}}/>:<div style={{width:72,height:72,borderRadius:'50%',background:'rgba(0,140,255,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'2rem',margin:'0 auto 12px'}}>👤</div>}
-          <div style={{fontSize:'1.2rem',fontWeight:700,color:'var(--text)',marginBottom:4}}>{profileModal.username}</div>
+          <div style={{width:72,height:72,borderRadius:'50%',overflow:'hidden',margin:'0 auto 14px',border:'2px solid rgba(0,140,255,.3)',background:'var(--card2)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {(profileModal.avatar_file_url||profileModal.avatar_url)
+              ?<img src={profileModal.avatar_file_url||profileModal.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+              :<span style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'1.6rem',color:'var(--text2)'}}>{(profileModal.leaderboard_public===false?'?':profileModal.username[0])?.toUpperCase()}</span>
+            }
+          </div>
+          <div style={{fontSize:'1.2rem',fontWeight:700,color:'var(--text)',marginBottom:4}}>
+            {profileModal.leaderboard_public===false?maskUsername(profileModal.username):profileModal.username}
+          </div>
           {profileModal.roblox_username&&<div style={{color:'var(--text2)',fontSize:'.85rem',marginBottom:12}}>Roblox: {profileModal.roblox_username}</div>}
           <div style={{background:'var(--card2)',borderRadius:10,padding:'12px 20px',display:'inline-block'}}>
             <div style={{fontSize:'1.6rem',fontWeight:800,color:'var(--gold)'}}>{profileModal.total_executions?.toLocaleString()}</div>
             <div style={{fontSize:'.75rem',color:'var(--text3)'}}>Total Executions</div>
           </div>
-          {!profileModal.leaderboard_public&&<div style={{marginTop:12,color:'var(--text3)',fontSize:'.8rem',background:'rgba(255,255,255,.04)',borderRadius:8,padding:'6px 12px'}}>🔒 Profil ini semi-private</div>}
+          {!profileModal.leaderboard_public&&<div style={{marginTop:12,color:'var(--text3)',fontSize:'.8rem',background:'rgba(255,255,255,.04)',borderRadius:8,padding:'6px 12px'}}>🔒 Pengguna ini menyembunyikan nama aslinya</div>}
         </div>}
       </Modal>
     </>
   )
 }
+// ─── Support Button ───────────────────────────────────────────
+function SupportButton({support}:{support:any}) {
+  const [open, setOpen] = useState(false)
+  const links = [
+    support.whatsapp_url && {url:support.whatsapp_url, label:'WhatsApp', icon:'📱'},
+    support.telegram_url && {url:support.telegram_url, label:'Telegram', icon:'✈️'},
+    support.discord_url && {url:support.discord_url, label:'Discord', icon:'💬'},
+  ].filter(Boolean)
+  if(!links.length) return null
+  return (
+    <div style={{position:'fixed',bottom:80,left:18,zIndex:8000}}>
+      {open&&(
+        <div style={{position:'absolute',bottom:'100%',left:0,marginBottom:10,display:'flex',flexDirection:'column',gap:8,animation:'fadeUp .25s ease'}}>
+          {links.map((l:any,i:number)=>(
+            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
+              style={{display:'flex',alignItems:'center',gap:9,background:'rgba(8,10,18,.96)',border:'1px solid rgba(50,120,255,.2)',borderRadius:12,padding:'9px 14px',textDecoration:'none',color:'#b8d4ff',fontSize:'.82rem',fontFamily:'Rajdhani,sans-serif',fontWeight:700,whiteSpace:'nowrap',backdropFilter:'blur(16px)',boxShadow:'0 6px 24px rgba(0,0,0,.6)'}}>
+              <span>{l.icon}</span>{l.label}
+            </a>
+          ))}
+        </div>
+      )}
+      <button onClick={()=>setOpen(!open)} style={{width:44,height:44,borderRadius:'50%',border:'1px solid rgba(50,140,255,.3)',background:'rgba(20,60,160,.2)',color:'#7ab8ff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(14px)',boxShadow:'0 4px 18px rgba(30,100,255,.2)',transition:'all .2s'}}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </button>
+    </div>
+  )
+}
 
-// ─── MAIN APP ────────────────────────────────────────────────
+// ─── Ban Dialog ───────────────────────────────────────────────
+function BanDialog({reason,support,onClose}:{reason:string;support:any;onClose:()=>void}) {
+  const links = support ? [
+    support.whatsapp_url && { url: support.whatsapp_url, label: 'WhatsApp' },
+    support.telegram_url && { url: support.telegram_url, label: 'Telegram' },
+    support.discord_url && { url: support.discord_url, label: 'Discord' },
+  ].filter(Boolean) : []
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.96)',zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(16px)',padding:20}}>
+      <div style={{background:'linear-gradient(160deg,rgba(40,5,5,.99),rgba(20,3,3,.99))',border:'1px solid rgba(255,60,60,.25)',borderRadius:24,padding:32,width:'100%',maxWidth:420,textAlign:'center',boxShadow:'0 40px 80px rgba(0,0,0,.95)',position:'relative',animation:'fadeUp .4s cubic-bezier(.34,1.56,.64,1)'}}>
+        <div style={{position:'absolute',top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,transparent,rgba(255,60,60,.7),transparent)',borderRadius:'24px 24px 0 0'}}/>
+        <div style={{fontSize:'3rem',marginBottom:16}}>🚫</div>
+        <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.4rem',fontWeight:700,color:'#ff6b6b',marginBottom:10,letterSpacing:1}}>AKUN DIBANNED</div>
+        <div style={{fontSize:'.86rem',color:'rgba(200,150,150,.65)',marginBottom:16,lineHeight:1.6}}>Akun kamu telah dibanned oleh developer dan tidak bisa mengakses sistem.</div>
+        {reason&&<div style={{background:'rgba(255,60,60,.08)',border:'1px solid rgba(255,60,60,.18)',borderRadius:12,padding:'12px 16px',fontSize:'.82rem',color:'#ff9999',marginBottom:20,lineHeight:1.5,textAlign:'left'}}>
+          <strong style={{color:'#ffaaaa'}}>Alasan:</strong> {reason}
+        </div>}
+        <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap',marginBottom:14}}>
+          {links.map((l:any,i:number)=>(
+            <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" style={{padding:'10px 20px',borderRadius:12,border:'1px solid rgba(255,160,50,.3)',background:'rgba(255,140,30,.1)',color:'#ffb347',textDecoration:'none',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.88rem'}}>
+              {support.custom_label||'Support'}: {l.label}
+            </a>
+          ))}
+        </div>
+        <button onClick={onClose} style={{padding:'9px 22px',borderRadius:12,border:'1px solid rgba(255,255,255,.1)',background:'rgba(255,255,255,.04)',color:'rgba(200,200,220,.5)',cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.88rem'}}>Tutup</button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const router = useRouter()
   const [ready, setReady] = useState(false)
   const [token, setToken] = useState<string|null>(null)
   const [user, setUser] = useState<User|null>(null)
   const [page, setPage] = useState('dash')
+  const [showBan, setShowBan] = useState(false)
+  const [banReason, setBanReason] = useState('')
+  const [support, setSupport] = useState<any>(null)
 
   useEffect(()=>{
     const t = setTimeout(()=>setReady(true), 2400)
     const saved = localStorage.getItem('awr_token')||sessionStorage.getItem('awr_token')
     if(saved) {
       api('/user/profile','GET',undefined,saved).then(d=>{
-        if(d.user){setToken(saved);setUser(d.user)}
-        else{localStorage.removeItem('awr_token');sessionStorage.removeItem('awr_token');router.push('/home')}
+        if(d.user){
+          if(d.user.is_banned){
+            setBanReason(d.user.ban_reason||''); setShowBan(true)
+            localStorage.removeItem('awr_token'); sessionStorage.removeItem('awr_token')
+          } else { setToken(saved); setUser(d.user) }
+        } else { localStorage.removeItem('awr_token'); sessionStorage.removeItem('awr_token') }
       })
-    } else {
-      // Tidak ada token, redirect ke halaman info
-      router.push('/home')
     }
+    fetch('/api/developer/support').then(r=>r.json()).then(d=>{ if(d.support)setSupport(d.support) }).catch(()=>{})
     return ()=>clearTimeout(t)
   },[])
 
-  function onAuth(t:string,u:User){setToken(t);setUser(u);setPage('dash')}
+  function onAuth(t:string,u:User){
+    if((u as any).is_banned){setBanReason((u as any).ban_reason||'');setShowBan(true);return}
+    setToken(t);setUser(u);setPage('dash')
+  }
   function logout(){localStorage.removeItem('awr_token');sessionStorage.removeItem('awr_token');setToken(null);setUser(null);toast('Sampai jumpa!','info')}
 
   return (
@@ -810,6 +909,8 @@ export default function App() {
       <Particles/>
       <div className="bg-grid"/>
       <div className="bg-orb bg-orb-1"/><div className="bg-orb bg-orb-2"/>
+
+      {showBan&&<BanDialog reason={banReason} support={support} onClose={()=>setShowBan(false)}/>}
 
       {!token
         ?<AuthPage onAuth={onAuth}/>
@@ -827,43 +928,41 @@ export default function App() {
             {page==='feedback'&&<FeedbackPage/>}
           </div>
 
+          {/* Support Button */}
+          {support?.is_active&&(support.whatsapp_url||support.telegram_url||support.discord_url)&&(
+            <SupportButton support={support}/>
+          )}
+
           {/* Bottom Tab Bar */}
           <nav className="bottom-tabbar">
-            {/* Dashboard */}
             <button className={`btab ${page==='dash'?'active':''}`} onClick={()=>setPage('dash')}>
               <div className="btab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
               <span className="btab-lbl">Dashboard</span>
             </button>
-            {/* Routes */}
             <button className={`btab t-routes ${page==='routes'?'active':''}`} onClick={()=>setPage('routes')}>
               <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M3 17c0-2 4-8 9-8s9 6 9 6"/><circle cx="8" cy="17" r="2"/><circle cx="18" cy="13" r="2"/><path d="M3 7h4l2 4H5"/></svg></div>
               <span className="btab-lbl">Routes</span>
             </button>
-            {/* Leaderboard */}
             <button className={`btab t-lb ${page==='lb'?'active':''}`} onClick={()=>setPage('lb')}>
               <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 01-2-2v-5"/><path d="M16 21h3a2 2 0 002-2v-9"/><path d="M12 21V11"/><path d="M3 10l9-7 9 7"/></svg></div>
               <span className="btab-lbl">Leaderboard</span>
             </button>
-            {/* Feedback */}
             <button className={`btab t-feedback ${page==='feedback'?'active':''}`} onClick={()=>setPage('feedback')}>
               <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
               <span className="btab-lbl">Feedback</span>
             </button>
-            {/* Reseller */}
             {(user!.role==='reseller'||user!.role==='developer')&&(
               <button className="btab t-rs" onClick={()=>router.push('/reseller')}>
                 <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div>
                 <span className="btab-lbl">Reseller</span>
               </button>
             )}
-            {/* Dev */}
             {user!.role==='developer'&&(
               <button className="btab t-dev" onClick={()=>router.push('/developer')}>
                 <div className="btab-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
                 <span className="btab-lbl">Dev</span>
               </button>
             )}
-            {/* Logout */}
             <button className="btab t-logout" onClick={logout}>
               <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
               <span className="btab-lbl">Logout</span>
