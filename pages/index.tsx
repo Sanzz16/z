@@ -878,19 +878,10 @@ export default function App() {
       {!token
         ?<AuthPage onAuth={onAuth}/>
         :<div style={{position:'relative',zIndex:1,minHeight:'100vh'}}>
-          <nav className="navbar" style={{position:'sticky'}}>
+          <nav className="navbar">
             <div className="navbar-brand" onClick={()=>setPage('dash')}>⚡ AWR</div>
             <div className="navbar-nav">
-              {[['dash','🏠','Dashboard'],['routes','🗺️','Routes'],['lb','🏆','Leaderboard']].map(([v,icon,lbl])=>(
-                <button key={v} className={`nav-btn ${page===v?'active':''}`} onClick={()=>setPage(v)}>{icon} {lbl}</button>
-              ))}
-              {(user!.role==='reseller'||user!.role==='developer')&&(
-                <button className="nav-btn reseller" onClick={()=>router.push('/reseller')}>🏪 Reseller</button>
-              )}
-              {user!.role==='developer'&&(
-                <button className="nav-btn dev" onClick={()=>router.push('/developer')}>👑 Dev</button>
-              )}
-              <button className="nav-btn danger" onClick={logout} title="Logout">🚪</button>
+              <span style={{fontFamily:'Rajdhani,sans-serif',fontSize:'.75rem',color:'rgba(140,140,160,.5)',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)',borderRadius:8,padding:'3px 10px',letterSpacing:.5}}>{user!.username}</span>
             </div>
           </nav>
           <div className="content" key={page}>
@@ -898,6 +889,44 @@ export default function App() {
             {page==='routes'&&<RoutesPage token={token} user={user}/>}
             {page==='lb'&&<LeaderboardPage/>}
           </div>
+
+          {/* Bottom Tab Bar */}
+          <nav className="bottom-tabbar">
+            {/* Dashboard */}
+            <button className={`btab ${page==='dash'?'active':''}`} onClick={()=>setPage('dash')}>
+              <div className="btab-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+              <span className="btab-lbl">Dashboard</span>
+            </button>
+            {/* Routes */}
+            <button className={`btab t-routes ${page==='routes'?'active':''}`} onClick={()=>setPage('routes')}>
+              <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M3 17c0-2 4-8 9-8s9 6 9 6"/><circle cx="8" cy="17" r="2"/><circle cx="18" cy="13" r="2"/><path d="M3 7h4l2 4H5"/></svg></div>
+              <span className="btab-lbl">Routes</span>
+            </button>
+            {/* Leaderboard */}
+            <button className={`btab t-lb ${page==='lb'?'active':''}`} onClick={()=>setPage('lb')}>
+              <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 01-2-2v-5"/><path d="M16 21h3a2 2 0 002-2v-9"/><path d="M12 21V11"/><path d="M3 10l9-7 9 7"/></svg></div>
+              <span className="btab-lbl">Leaderboard</span>
+            </button>
+            {/* Reseller */}
+            {(user!.role==='reseller'||user!.role==='developer')&&(
+              <button className="btab t-rs" onClick={()=>router.push('/reseller')}>
+                <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div>
+                <span className="btab-lbl">Reseller</span>
+              </button>
+            )}
+            {/* Dev */}
+            {user!.role==='developer'&&(
+              <button className="btab t-dev" onClick={()=>router.push('/developer')}>
+                <div className="btab-icon"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                <span className="btab-lbl">Dev</span>
+              </button>
+            )}
+            {/* Logout */}
+            <button className="btab t-logout" onClick={logout}>
+              <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+              <span className="btab-lbl">Logout</span>
+            </button>
+          </nav>
         </div>
       }
     </>
