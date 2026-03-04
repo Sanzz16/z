@@ -16,12 +16,12 @@ function toast(m:string,t='info'){_toast(m,t)}
 
 function ToastRoot(){
   const [items,setItems]=useState<any[]>([]);const id=useRef(0)
-  useEffect(()=>{_toast=(msg,type='info')=>{const n=++id.current;const icon=type==='error'?'❌':type==='success'?'✅':type==='warn'?'⚠️':'ℹ️';setItems(p=>[...p,{id:n,msg,type,icon}]);setTimeout(()=>setItems(p=>p.filter(x=>x.id!==n)),4000)}},[]  )
+  useEffect(()=>{_toast=(msg,type='info')=>{const n=++id.current;const icon=type==='error'?'error':type==='success'?'success':type==='warn'?'warn':'info';setItems(p=>[...p,{id:n,msg,type,icon}]);setTimeout(()=>setItems(p=>p.filter(x=>x.id!==n)),4000)}},[]  )
   return(
     <div style={{position:'fixed',bottom:24,right:24,zIndex:9999,display:'flex',flexDirection:'column',gap:9,maxWidth:340,pointerEvents:'none'}}>
       {items.map(t=>(
         <div key={t.id} style={{background:'rgba(10,11,13,.97)',border:'1px solid rgba(255,255,255,.08)',borderLeft:`3px solid ${t.type==='success'?'#32ff7e':t.type==='error'?'#ff4757':t.type==='warn'?'#f59e0b':'#c77dff'}`,borderRadius:15,padding:'13px 16px',display:'flex',gap:10,alignItems:'flex-start',animation:'dvToastIn .35s cubic-bezier(.34,1.56,.64,1)',backdropFilter:'blur(14px)',boxShadow:'0 10px 36px rgba(0,0,0,.7)',pointerEvents:'all'}}>
-          <span style={{fontSize:'1.05rem',flexShrink:0,lineHeight:1.4}}>{t.icon}</span>
+          <div style={{flexShrink:0,width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center'}}>{t.icon==='success'?<svg viewBox='0 0 24 24' fill='none' stroke='#32ff7e' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><polyline points='20 6 9 17 4 12'/></svg>:t.icon==='error'?<svg viewBox='0 0 24 24' fill='none' stroke='#ff4757' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>:t.icon==='warn'?<svg viewBox='0 0 24 24' fill='none' stroke='#f59e0b' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><path d='M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'/><line x1='12' y1='9' x2='12' y2='13'/><line x1='12' y1='17' x2='12.01' y2='17'/></svg>:<svg viewBox='0 0 24 24' fill='none' stroke='#c77dff' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>}</div>
           <div>
             <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.85rem',color:'#fff',marginBottom:2}}>{t.type==='error'?'Error':t.type==='success'?'Sukses':'Info'}</div>
             <div style={{fontSize:'.78rem',color:'#8a8a9a',lineHeight:1.4}}>{t.msg}</div>
@@ -84,11 +84,99 @@ function UserSearchInput({users,value,onChange,accentColor='rgba(168,85,247,.2)'
               <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,rgba(124,58,237,.25),rgba(168,85,247,.15))',border:`1px solid ${accentColor}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.78rem',color:'#c77dff',flexShrink:0}}>{u.username?.[0]?.toUpperCase()}</div>
               <div style={{flex:1}}>
                 <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.88rem',color:'#e0e0f0'}}>{u.username}</div>
-                {u.is_banned&&<div style={{fontSize:'.65rem',color:'#ff4757',marginTop:1}}>⛔ Banned</div>}
+                {u.is_banned&&<div style={{fontSize:'.65rem',color:'#ff4757',marginTop:1}}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:3}}><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Banned</div>}
               </div>
               {value===u.username&&<div style={{color:'#32ff7e',fontSize:'.75rem'}}>✓</div>}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DurationDropdown({value,onChange,className='dv-fi'}:{value:string,onChange:(v:string)=>void,className?:string}){
+  const [open,setOpen]=useState(false)
+  const ref=useRef<HTMLDivElement>(null)
+  
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node))setOpen(false)}
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h)
+  },[])
+  return(
+    <div ref={ref} style={{position:'relative'}}>
+      <div onClick={()=>setOpen(!open)} style={{width:'100%',background:'rgba(255,255,255,.035)',border:`1px solid ${open?'rgba(168,85,247,.45)':'rgba(255,255,255,.09)'}`,borderRadius:13,padding:'11px 40px 11px 14px',color:'#e0e0f0',fontSize:'.875rem',fontFamily:'Outfit,sans-serif',cursor:'pointer',userSelect:'none',display:'flex',alignItems:'center',gap:8,transition:'all .2s',boxShadow:open?'0 0 0 3px rgba(168,85,247,.07)':'none'}}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span style={{flex:1}}>{DUR[value]||value}</span>
+        <div style={{position:'absolute',right:12,top:'50%',transform:`translateY(-50%) rotate(${open?180:0}deg)`,transition:'transform .2s',color:'rgba(140,140,160,.5)'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      {open&&(
+        <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,right:0,background:'rgba(12,13,18,.98)',border:'1px solid rgba(168,85,247,.2)',borderRadius:14,overflow:'hidden',zIndex:9999,boxShadow:'0 16px 48px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.04)'}}>
+          {DURS.map((d,i)=>(
+            <div key={d} onMouseDown={()=>{onChange(d);setOpen(false)}}
+              style={{padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:10,borderBottom:i<DURS.length-1?'1px solid rgba(255,255,255,.04)':'none',transition:'background .12s',background:value===d?'rgba(168,85,247,.08)':'transparent'}}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(168,85,247,.1)')}
+              onMouseLeave={e=>(e.currentTarget.style.background=value===d?'rgba(168,85,247,.08)':'transparent')}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.9rem',color:value===d?'#c77dff':'#c0c0d8'}}>{DUR[d]}</span>
+              {value===d&&<div style={{marginLeft:'auto',color:'#32ff7e',fontSize:'.8rem'}}>✓</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function UserSelectDropdown({users,value,onChange,placeholder='— Pilih User —'}:{users:any[],value:string,onChange:(v:string)=>void,placeholder?:string}){
+  const [open,setOpen]=useState(false)
+  const [q,setQ]=useState('')
+  const ref=useRef<HTMLDivElement>(null)
+  useEffect(()=>{
+    const h=(e:MouseEvent)=>{if(ref.current&&!ref.current.contains(e.target as Node)){setOpen(false);setQ('')}}
+    document.addEventListener('mousedown',h);return()=>document.removeEventListener('mousedown',h)
+  },[])
+  const selected=users.find(u=>u.id===value||u.username===value)
+  const filtered=users.filter(u=>!q||u.username?.toLowerCase().includes(q.toLowerCase())).slice(0,8)
+  return(
+    <div ref={ref} style={{position:'relative'}}>
+      <div onClick={()=>setOpen(!open)} style={{width:'100%',background:'rgba(255,255,255,.035)',border:`1px solid ${open?'rgba(168,85,247,.45)':'rgba(255,255,255,.09)'}`,borderRadius:13,padding:'11px 40px 11px 14px',color:selected?'#e0e0f0':'rgba(140,140,160,.45)',fontSize:'.875rem',fontFamily:'Outfit,sans-serif',cursor:'pointer',userSelect:'none',display:'flex',alignItems:'center',gap:8,transition:'all .2s',boxShadow:open?'0 0 0 3px rgba(168,85,247,.07)':'none'}}>
+        {selected?<>
+          <div style={{width:22,height:22,borderRadius:'50%',background:'linear-gradient(135deg,rgba(124,58,237,.3),rgba(168,85,247,.2))',border:'1px solid rgba(168,85,247,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.68rem',color:'#c77dff',flexShrink:0}}>{selected.username?.[0]?.toUpperCase()}</div>
+          <span style={{flex:1}}>{selected.username}</span>
+        </>:<span style={{flex:1}}>{placeholder}</span>}
+        <div style={{position:'absolute',right:12,top:'50%',transform:`translateY(-50%) rotate(${open?180:0}deg)`,transition:'transform .2s',color:'rgba(140,140,160,.5)'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      {open&&(
+        <div style={{position:'absolute',top:'calc(100% + 6px)',left:0,right:0,background:'rgba(12,13,18,.98)',border:'1px solid rgba(168,85,247,.2)',borderRadius:14,overflow:'hidden',zIndex:9999,boxShadow:'0 16px 48px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.04)',maxHeight:280,display:'flex',flexDirection:'column'}}>
+          <div style={{padding:'8px 10px',borderBottom:'1px solid rgba(255,255,255,.05)',position:'relative'}}>
+            <input autoFocus placeholder="Cari user..." value={q} onChange={e=>setQ(e.target.value)}
+              onClick={e=>e.stopPropagation()}
+              style={{width:'100%',background:'rgba(255,255,255,.05)',border:'1px solid rgba(168,85,247,.2)',borderRadius:9,padding:'7px 32px 7px 12px',color:'#e0e0f0',fontSize:'.82rem',fontFamily:'Outfit,sans-serif',outline:'none'}}/>
+            <div style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',color:'rgba(140,140,160,.4)',pointerEvents:'none'}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+          </div>
+          <div style={{overflowY:'auto',maxHeight:220}}>
+            {filtered.map((u,i)=>(
+              <div key={u.id} onMouseDown={()=>{onChange(u.id);setOpen(false);setQ('')}}
+                style={{padding:'10px 14px',cursor:'pointer',display:'flex',alignItems:'center',gap:10,borderBottom:i<filtered.length-1?'1px solid rgba(255,255,255,.04)':'none',transition:'background .12s',background:value===u.id?'rgba(168,85,247,.08)':'transparent'}}
+                onMouseEnter={e=>(e.currentTarget.style.background='rgba(168,85,247,.1)')}
+                onMouseLeave={e=>(e.currentTarget.style.background=value===u.id?'rgba(168,85,247,.08)':'transparent')}>
+                <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,rgba(124,58,237,.25),rgba(168,85,247,.15))',border:'1px solid rgba(168,85,247,.25)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.78rem',color:'#c77dff',flexShrink:0}}>{u.username?.[0]?.toUpperCase()}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.88rem',color:'#e0e0f0'}}>{u.username}</div>
+                  <div style={{fontSize:'.65rem',color:'rgba(140,140,160,.5)',marginTop:1}}>{u.email||'user'}</div>
+                </div>
+                {value===u.id&&<div style={{color:'#32ff7e',fontSize:'.8rem'}}>✓</div>}
+              </div>
+            ))}
+            {!filtered.length&&<div style={{padding:'20px',textAlign:'center',color:'rgba(140,140,160,.4)',fontSize:'.82rem'}}>Tidak ada user</div>}
+          </div>
         </div>
       )}
     </div>
@@ -208,6 +296,7 @@ export default function DevPage(){
   const [loginForm,setLoginForm]=useState({username:'',password:''})
   const [showPw,setShowPw]=useState(false)
   const [epw,setEpw]=useState(false)
+  const [rsSelId,setRsSelId]=useState('')
   const [logging,setLogging]=useState(false)
   const [users,setUsers]=useState<any[]>([])
   const [keys,setKeys]=useState<any[]>([])
@@ -259,7 +348,7 @@ export default function DevPage(){
     <><Head><title>Developer — AWR</title></Head><style>{DV_CSS}</style><ToastRoot/>
     <div className="dv-auth-wrap"><div className="dv-auth-box">
       <div className="dv-auth-logo">
-        <div className="dv-auth-title">👑 DEV</div>
+        <div className="dv-auth-title">AWR DEV</div>
         <div className="dv-auth-sub">Developer Panel · AWR Key System</div>
       </div>
       <div className="dv-auth-card">
@@ -268,24 +357,24 @@ export default function DevPage(){
           <div style={{marginBottom:22}}><label className="dv-fl">Password</label>
             <div style={{position:'relative'}}>
               <input className="dv-fi" style={{paddingRight:44}} type={showPw?'text':'password'} placeholder="Password..." value={loginForm.password} onChange={e=>setLoginForm(f=>({...f,password:e.target.value}))} required/>
-              <button type="button" onClick={()=>setShowPw(!showPw)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'#444455',cursor:'pointer',fontSize:'1rem'}}>{showPw?'🙈':'👁️'}</button>
+              <button type="button" onClick={()=>setShowPw(!showPw)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'#444455',cursor:'pointer',fontSize:'1rem'}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{showPw?<><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>:<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>}</svg></button>
             </div>
           </div>
-          <button type="submit" className="dv-btn-primary" disabled={logging}>{logging?<><div className="dv-spin"/>Loading...</>:'👑 Masuk Developer Panel'}</button>
+          <button type="submit" className="dv-btn-primary" disabled={logging}>{logging?<><div className="dv-spin"/>Loading...</>:'Masuk Developer Panel'}</button>
         </form>
       </div>
     </div></div></>
   )
 
   const fu=users.filter(u=>u.username?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase()))
-  const TABS:[Tab,string,string][]=[
-    ['send-key','🔑','Kirim Key'],
-    ['users','👥','Users'],
-    ['keys','📋','Keys'],
-    ['broadcast','📢','Broadcast'],
-    ['global-key','🎁','Global'],
-    ['resellers','🏪','Reseller'],
-    ['getkey-settings','⚙️','GetKey'],
+  const TABS:[Tab,React.ReactNode,string][]=[
+    ['send-key',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M17.5 8.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z"/><path d="M10.5 12.5L14 9"/></svg>,'Kirim Key'],
+    ['users',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,'Users'],
+    ['keys',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>,'Keys'],
+    ['broadcast',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>,'Broadcast'],
+    ['global-key',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,'Global'],
+    ['resellers',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,'Reseller'],
+    ['getkey-settings',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,'GetKey'],
   ]
 
   const CardSection=({title,children,extra}:{title:string,children:React.ReactNode,extra?:React.ReactNode})=>(
@@ -305,11 +394,11 @@ export default function DevPage(){
     <ToastRoot/>
 
     <nav className="dv-nav">
-      <div className="dv-brand">👑 AWR DEV</div>
+      <div className="dv-brand">AWR DEV</div>
       <div className="dv-nav-actions">
         <span className="dv-badge-user">{user.username}</span>
-        <button className="dv-btn-nav" onClick={()=>router.push('/')}>🏠 Website</button>
-        <button className="dv-btn-logout" onClick={logout}>🚪 Logout</button>
+        <button className="dv-btn-nav" onClick={()=>router.push('/')}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Website</button>
+        <button className="dv-btn-logout" onClick={logout}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</button>
       </div>
     </nav>
 
@@ -318,7 +407,7 @@ export default function DevPage(){
       <div className="dv-tabs">
         {TABS.map(([v,icon,lbl],i)=>(
           <button key={v} className={`dv-tab${tab===v?' active':''}`} onClick={()=>setTab(v)} style={{animation:`dvTabIn .3s ease ${i*.05}s both`}}>
-            <span className="ti">{icon}</span>
+            <div className="ti" style={{display:"flex",alignItems:"center",justifyContent:"center"}}>{icon}</div>
             <span className="tl">{lbl}</span>
           </button>
         ))}
@@ -336,18 +425,16 @@ export default function DevPage(){
               <UserSearchInput users={users} value={sendForm.target_username} onChange={v=>setSendForm(f=>({...f,target_username:v}))}/>
             </div>
             <div className="dv-fg"><label className="dv-fl">Durasi</label>
-              <select className="dv-fi" value={sendForm.duration_type} onChange={e=>setSendForm(f=>({...f,duration_type:e.target.value}))}>
-                {DURS.map(d=><option key={d} value={d}>{DUR[d]}</option>)}
-              </select>
+              <DurationDropdown value={sendForm.duration_type} onChange={v=>setSendForm(f=>({...f,duration_type:v}))}/>
             </div>
             <div style={{marginBottom:20}}><label className="dv-fl">Max HWID</label><input className="dv-fi" type="number" min={1} value={sendForm.hwid_max} onChange={e=>setSendForm(f=>({...f,hwid_max:e.target.value}))} required/></div>
-            <button type="submit" className="dv-btn-primary" disabled={sending||!sendForm.target_username}>{sending?<><div className="dv-spin"/>Mengirim...</>:'🚀 Kirim Key'}</button>
+            <button type="submit" className="dv-btn-primary" disabled={sending||!sendForm.target_username}>{sending?<><div className="dv-spin"/>Mengirim...</>:'Kirim Key'}</button>
           </form>
         </CardSection>
       </div>}
 
       {/* USERS */}
-      {tab==='users'&&<CardSection title={`SEMUA USER (${users.length})`} extra={<input className="dv-fi" style={{width:220}} placeholder="🔍 Cari..." value={search} onChange={e=>setSearch(e.target.value)}/>}>
+      {tab==='users'&&<CardSection title={`SEMUA USER (${users.length})`} extra={<input className="dv-fi" style={{width:220}} placeholder="Cari..." value={search} onChange={e=>setSearch(e.target.value)}/>}>
         <div className="dv-tbl-wrap"><table className="dv-tbl">
           <thead><tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Key</th><th>Exec</th><th>Aksi</th></tr></thead>
           <tbody>
@@ -359,8 +446,8 @@ export default function DevPage(){
               <td>{u.keys?.[0]?.key_value?<span className="dv-key-chip">{u.keys[0].key_value.slice(0,12)}…</span>:<Bdg c="gray" t="No Key"/>}</td>
               <td style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,color:'#c77dff'}}>{u.total_executions||0}</td>
               <td><div style={{display:'flex',gap:6}}>
-                <button className="dv-btn-act" onClick={()=>setEditUser({userId:u.id,username:u.username,email:u.email,role:u.role,roblox_username:u.roblox_username||'',password:''})}>✏️</button>
-                {u.is_banned?<button className="dv-btn-unban" onClick={()=>{setBanModal(u);setBanReason('')}}>✅</button>:<button className="dv-btn-ban" onClick={()=>{setBanModal(u);setBanReason('')}}>🚫</button>}
+                <button className="dv-btn-act" onClick={()=>setEditUser({userId:u.id,username:u.username,email:u.email,role:u.role,roblox_username:u.roblox_username||'',password:''})}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                {u.is_banned?<button className="dv-btn-unban" onClick={()=>{setBanModal(u);setBanReason('')}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></button>:<button className="dv-btn-ban" onClick={()=>{setBanModal(u);setBanReason('')}}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></button>}
               </div></td>
             </tr>)}
             {!fu.length&&<tr><td colSpan={7} style={{textAlign:'center',padding:'36px 0',color:'#333344'}}>Tidak ada user</td></tr>}
@@ -383,8 +470,8 @@ export default function DevPage(){
               <td style={{color:'#444455',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>{k.times_used}×</td>
               <td><Bdg c={k.is_active&&!isExpired(k.expires_at)?'green':'red'} t={k.is_active&&!isExpired(k.expires_at)?'Aktif':'Mati'}/></td>
               <td><div style={{display:'flex',gap:6}}>
-                <button className="dv-btn-act" onClick={()=>setEditKey({keyId:k.id,is_active:k.is_active,hwid_max:k.hwid_max,duration_type:k.duration_type,assigned_to_username:k.owner?.username||''})}>✏️</button>
-                <button className="dv-btn-del" onClick={()=>delKey(k.id)}>🗑️</button>
+                <button className="dv-btn-act" onClick={()=>setEditKey({keyId:k.id,is_active:k.is_active,hwid_max:k.hwid_max,duration_type:k.duration_type,assigned_to_username:k.owner?.username||''})}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button className="dv-btn-del" onClick={()=>delKey(k.id)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
               </div></td>
             </tr>)}
             {!keys.length&&<tr><td colSpan={9} style={{textAlign:'center',padding:'36px 0',color:'#333344'}}>Belum ada key</td></tr>}
@@ -398,21 +485,19 @@ export default function DevPage(){
         <form onSubmit={sendBc}>
           <div className="dv-fg"><label className="dv-fl">Judul</label><input className="dv-fi" placeholder="Judul pengumuman..." value={bc.title} onChange={e=>setBc(b=>({...b,title:e.target.value}))} required/></div>
           <div style={{marginBottom:20}}><label className="dv-fl">Isi Pesan</label><textarea className="dv-fi" placeholder="Isi pesan..." value={bc.content} onChange={e=>setBc(b=>({...b,content:e.target.value}))} required style={{minHeight:110,resize:'vertical'}}/></div>
-          <button type="submit" className="dv-btn-primary">📢 Kirim ke Semua User</button>
+          <button type="submit" className="dv-btn-primary">Kirim ke Semua User</button>
         </form>
       </CardSection></div>}
 
       {/* GLOBAL KEY */}
       {tab==='global-key'&&<div style={{maxWidth:480}}><CardSection title="KEY GLOBAL KE SEMUA USER">
-        <div style={{background:'rgba(251,191,36,.05)',border:'1px solid rgba(251,191,36,.18)',borderRadius:12,padding:'12px 16px',marginBottom:18,marginTop:-10,fontSize:'.82rem',color:'#fbbf24'}}>⚠️ Key ini bisa dipakai semua user. Semua user dapat notifikasi.</div>
+        <div style={{background:'rgba(251,191,36,.05)',border:'1px solid rgba(251,191,36,.18)',borderRadius:12,padding:'12px 16px',marginBottom:18,marginTop:-10,fontSize:'.82rem',color:'#fbbf24'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6,flexShrink:0}}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Key ini bisa dipakai semua user. Semua user dapat notifikasi.</div>
         <form onSubmit={sendGk}>
           <div className="dv-fg"><label className="dv-fl">Durasi</label>
-            <select className="dv-fi" value={gk.duration_type} onChange={e=>setGk(g=>({...g,duration_type:e.target.value}))}>
-              {DURS.map(d=><option key={d} value={d}>{DUR[d]}</option>)}
-            </select>
+            <DurationDropdown value={gk.duration_type} onChange={v=>setGk(g=>({...g,duration_type:v}))}/>
           </div>
           <div style={{marginBottom:20}}><label className="dv-fl">Max HWID</label><input className="dv-fi" type="number" min={1} value={gk.hwid_max} onChange={e=>setGk(g=>({...g,hwid_max:e.target.value}))}/></div>
-          <button type="submit" className="dv-btn-primary">🚀 Kirim ke Semua</button>
+          <button type="submit" className="dv-btn-primary">Kirim ke Semua</button>
         </form>
       </CardSection></div>}
 
@@ -420,11 +505,8 @@ export default function DevPage(){
       {tab==='resellers'&&<div style={{maxWidth:620}}><CardSection title="MANAJEMEN RESELLER">
         <div className="dv-fg"><label className="dv-fl">Jadikan Reseller</label>
           <div style={{display:'flex',gap:8}}>
-            <select id="rs-sel" className="dv-fi" style={{flex:1}}>
-              <option value="">— Pilih User —</option>
-              {users.filter(u=>u.role==='user').map(u=><option key={u.id} value={u.id}>{u.username}</option>)}
-            </select>
-            <button onClick={()=>{const v=(document.getElementById('rs-sel') as HTMLSelectElement)?.value;if(v)setRole(v,'reseller')}} className="dv-btn-gold">✅ Set</button>
+            <div style={{flex:1}}><UserSelectDropdown users={users.filter(u=>u.role==='user')} value={rsSelId} onChange={v=>setRsSelId(v)}/></div>
+            <button onClick={()=>{if(rsSelId){setRole(rsSelId,'reseller');setRsSelId('')}}} className="dv-btn-gold"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:4}}><polyline points="20 6 9 17 4 12"/></svg>Set</button>
           </div>
         </div>
         <div className="dv-divider"/>
@@ -449,92 +531,90 @@ export default function DevPage(){
             <div className="dv-step-num" style={{background:s.is_active?'rgba(168,85,247,.15)':'rgba(255,255,255,.04)',border:`2px solid ${s.is_active?'rgba(168,85,247,.5)':'rgba(255,255,255,.1)'}`,color:s.is_active?'#c77dff':'#444455'}}>{s.order_index}</div>
             <div style={{flex:1}}>
               <div style={{fontWeight:700,fontSize:'.9rem',color:'#e0e0e8'}}>{s.name}</div>
-              <div style={{fontSize:'.75rem',color:'#444455',marginTop:3}}>⏱️ {s.duration_seconds}s · <span style={{color:'#4facfe'}}>{s.url.length>45?s.url.slice(0,45)+'…':s.url}</span></div>
+              <div style={{fontSize:'.75rem',color:'#444455',marginTop:3}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:3,verticalAlign:"middle"}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{s.duration_seconds}s · <span style={{color:'#4facfe'}}>{s.url.length>45?s.url.slice(0,45)+'…':s.url}</span></div>
             </div>
             <div style={{display:'flex',gap:6,flexShrink:0}}>
               <button onClick={()=>toggleStep(s.id,!s.is_active)} style={{background:s.is_active?'rgba(50,255,126,.08)':'rgba(255,71,87,.08)',border:`1px solid ${s.is_active?'rgba(50,255,126,.2)':'rgba(255,71,87,.2)'}`,color:s.is_active?'#32ff7e':'#ff5c69',borderRadius:8,padding:'5px 10px',cursor:'pointer',fontSize:'.78rem',fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{s.is_active?'● ON':'○ OFF'}</button>
-              <button className="dv-btn-act" onClick={()=>setEditStep({...s,duration_seconds:s.duration_seconds.toString()})}>✏️</button>
-              <button className="dv-btn-del" onClick={()=>delStep(s.id)}>🗑️</button>
+              <button className="dv-btn-act" onClick={()=>setEditStep({...s,duration_seconds:s.duration_seconds.toString()})}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button className="dv-btn-del" onClick={()=>delStep(s.id)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
             </div>
           </div>
         ))}
         {!gkSteps.length&&<div style={{textAlign:'center',color:'#333344',padding:'20px 0 4px'}}>Belum ada step. Tambah di bawah.</div>}
         <div className="dv-divider"/>
-        <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'.95rem',fontWeight:700,color:'#c77dff',marginBottom:14}}>➕ Tambah Step</div>
+        <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'.95rem',fontWeight:700,color:'#c77dff',marginBottom:14}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Step</div>
         <form onSubmit={addGkStep}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 100px',gap:12,marginBottom:12}}>
             <div><label className="dv-fl">Nama Step</label><input className="dv-fi" placeholder="Nama step..." value={addStep.name} onChange={e=>setAddStep(s=>({...s,name:e.target.value}))} required/></div>
             <div><label className="dv-fl">Detik</label><input className="dv-fi" type="number" min={5} max={300} value={addStep.duration_seconds} onChange={e=>setAddStep(s=>({...s,duration_seconds:e.target.value}))}/></div>
           </div>
           <div style={{marginBottom:16}}><label className="dv-fl">URL</label><input className="dv-fi" placeholder="https://..." value={addStep.url} onChange={e=>setAddStep(s=>({...s,url:e.target.value}))} required/></div>
-          <button type="submit" className="dv-btn-primary" style={{width:'auto',padding:'10px 24px'}}>➕ Tambah Step</button>
+          <button type="submit" className="dv-btn-primary" style={{width:'auto',padding:'10px 24px'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Step</button>
         </form>
       </CardSection>}
     </div>
 
     {/* ── MODALS ── */}
-    <Modal open={!!editUser} onClose={()=>setEditUser(null)} title="✏️ Edit User">
+    <Modal open={!!editUser} onClose={()=>setEditUser(null)} title="Edit User">
       {editUser&&<>
         {[['Username','username','text'],['Email','email','email'],['Roblox','roblox_username','text']].map(([l,k,t])=>(
           <div key={k as string} className="dv-fg"><label className="dv-fl">{l as string}</label><input className="dv-fi" type={t as string} value={editUser[k as string]} onChange={e=>setEditUser((u:any)=>({...u,[k as string]:e.target.value}))}/></div>
         ))}
         <div className="dv-fg"><label className="dv-fl">Role</label>
           <select className="dv-fi" value={editUser.role} onChange={e=>setEditUser((u:any)=>({...u,role:e.target.value}))}>
-            <option value="user">👤 User</option><option value="reseller">🏪 Reseller</option><option value="developer">👑 Developer</option>
+            <option value="user">User</option><option value="reseller">Reseller</option><option value="developer">Developer</option>
           </select>
         </div>
         <div style={{marginBottom:20}}><label className="dv-fl">Password Baru (kosong = tidak ganti)</label>
           <div style={{position:'relative'}}>
             <input className="dv-fi" style={{paddingRight:44}} type={epw?'text':'password'} placeholder="Password baru..." value={editUser.password} onChange={e=>setEditUser((u:any)=>({...u,password:e.target.value}))}/>
-            <button type="button" onClick={()=>setEpw(!epw)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'#444455',cursor:'pointer'}}>{epw?'🙈':'👁️'}</button>
+            <button type="button" onClick={()=>setEpw(!epw)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'#444455',cursor:'pointer'}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{epw?<><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>:<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>}</svg></button>
           </div>
         </div>
         <div style={{display:'flex',gap:10}}>
-          <button onClick={saveEditUser} className="dv-btn-primary" style={{flex:1}}>💾 Simpan</button>
+          <button onClick={saveEditUser} className="dv-btn-primary" style={{flex:1}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Simpan</button>
           <button onClick={()=>setEditUser(null)} className="dv-btn-sec">Batal</button>
         </div>
       </>}
     </Modal>
 
-    <Modal open={!!editKey} onClose={()=>setEditKey(null)} title="✏️ Edit Key">
+    <Modal open={!!editKey} onClose={()=>setEditKey(null)} title="Edit Key">
       {editKey&&<>
         <div className="dv-fg"><label className="dv-fl">Assign ke Username</label><input className="dv-fi" placeholder="Username..." value={editKey.assigned_to_username} onChange={e=>setEditKey((k:any)=>({...k,assigned_to_username:e.target.value}))}/></div>
         <div className="dv-fg"><label className="dv-fl">Durasi</label>
-          <select className="dv-fi" value={editKey.duration_type} onChange={e=>setEditKey((k:any)=>({...k,duration_type:e.target.value}))}>
-            {DURS.map(d=><option key={d} value={d}>{DUR[d]}</option>)}
-          </select>
+          <DurationDropdown value={editKey.duration_type} onChange={v=>setEditKey((k:any)=>({...k,duration_type:v}))}/>
         </div>
         <div className="dv-fg"><label className="dv-fl">Max HWID</label><input className="dv-fi" type="number" value={editKey.hwid_max} onChange={e=>setEditKey((k:any)=>({...k,hwid_max:e.target.value}))}/></div>
         <div style={{marginBottom:20}}><label className="dv-fl">Status</label>
           <select className="dv-fi" value={editKey.is_active?'1':'0'} onChange={e=>setEditKey((k:any)=>({...k,is_active:e.target.value==='1'}))}>
-            <option value="1">✅ Aktif</option><option value="0">❌ Nonaktif</option>
+            <option value="1">Aktif</option><option value="0">Nonaktif</option>
           </select>
         </div>
         <div style={{display:'flex',gap:10}}>
-          <button onClick={saveEditKey} className="dv-btn-primary" style={{flex:1}}>💾 Simpan</button>
+          <button onClick={saveEditKey} className="dv-btn-primary" style={{flex:1}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Simpan</button>
           <button onClick={()=>setEditKey(null)} className="dv-btn-sec">Batal</button>
         </div>
       </>}
     </Modal>
 
-    <Modal open={!!editStep} onClose={()=>setEditStep(null)} title="✏️ Edit Step">
+    <Modal open={!!editStep} onClose={()=>setEditStep(null)} title="Edit Step">
       {editStep&&<>
         <div className="dv-fg"><label className="dv-fl">Nama</label><input className="dv-fi" value={editStep.name} onChange={e=>setEditStep((s:any)=>({...s,name:e.target.value}))}/></div>
         <div className="dv-fg"><label className="dv-fl">URL</label><input className="dv-fi" value={editStep.url} onChange={e=>setEditStep((s:any)=>({...s,url:e.target.value}))}/></div>
         <div style={{marginBottom:20}}><label className="dv-fl">Durasi (detik)</label><input className="dv-fi" type="number" min={5} max={300} value={editStep.duration_seconds} onChange={e=>setEditStep((s:any)=>({...s,duration_seconds:e.target.value}))}/></div>
         <div style={{display:'flex',gap:10}}>
-          <button onClick={saveEditStep} className="dv-btn-primary" style={{flex:1}}>💾 Simpan</button>
+          <button onClick={saveEditStep} className="dv-btn-primary" style={{flex:1}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Simpan</button>
           <button onClick={()=>setEditStep(null)} className="dv-btn-sec">Batal</button>
         </div>
       </>}
     </Modal>
 
-    <Modal open={!!banModal} onClose={()=>setBanModal(null)} title={banModal?.is_banned?'✅ Unban User':'🚫 Ban User'}>
+    <Modal open={!!banModal} onClose={()=>setBanModal(null)} title={banModal?.is_banned?'Unban User':'Ban User'}>
       {banModal&&<>
         <p style={{fontSize:'.85rem',color:'#8a8a9a',marginBottom:16}}>{banModal.is_banned?`Unban ${banModal.username}?`:`Ban ${banModal.username}? Semua key akan dimatikan.`}</p>
         {!banModal.is_banned&&<div style={{marginBottom:16}}><label className="dv-fl">Alasan Ban</label><input className="dv-fi" placeholder="Alasan ban..." value={banReason} onChange={e=>setBanReason(e.target.value)}/></div>}
         <div style={{display:'flex',gap:10}}>
-          {banModal.is_banned?<button onClick={()=>doBan('unban')} className="dv-btn-green">✅ Unban</button>:<button onClick={()=>doBan('ban')} className="dv-btn-red">🚫 Ban</button>}
+          {banModal.is_banned?<button onClick={()=>doBan('unban')} className="dv-btn-green"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:4}}><polyline points="20 6 9 17 4 12"/></svg>Unban</button>:<button onClick={()=>doBan('ban')} className="dv-btn-red"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:4}}><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Ban</button>}
           <button onClick={()=>setBanModal(null)} className="dv-btn-sec">Batal</button>
         </div>
       </>}

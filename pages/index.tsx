@@ -47,7 +47,7 @@ function ToastRoot() {
     _addToast = (msg, type='info', title='') => {
       const n = ++id.current
       const tl = title || (type==='error'?'Error':type==='success'?'Sukses':type==='warn'?'Peringatan':'Info')
-      const icon = type==='error'?'❌':type==='success'?'✅':type==='warn'?'⚠️':'ℹ️'
+      const icon = type==='error'?'error':type==='success'?'success':type==='warn'?'warn':'info'
       setItems(p=>[...p,{id:n,msg,type,title:tl,icon}])
       setTimeout(()=>setItems(p=>p.filter(x=>x.id!==n)), 4000)
     }
@@ -56,7 +56,7 @@ function ToastRoot() {
     <div className="toast-root">
       {items.map(t=>(
         <div key={t.id} className={`toast-item ${t.type}`}>
-          <span className="toast-icon">{t.icon}</span>
+          
           <div><div className="toast-title">{t.title}</div><div className="toast-msg">{t.msg}</div></div>
         </div>
       ))}
@@ -120,9 +120,9 @@ function Particles() {
 function LoadingScreen({done}:{done:boolean}) {
   const [stepIdx, setStepIdx] = useState(0)
   const steps = [
-    { icon: '⚡', text: 'MENGHUBUNGKAN SERVER...' },
-    { icon: '🔐', text: 'MEMUAT KEAMANAN...' },
-    { icon: '✅', text: 'SISTEM SIAP!' },
+    { icon: 'connect', text: 'MENGHUBUNGKAN SERVER...' },
+    { icon: 'shield', text: 'MEMUAT KEAMANAN...' },
+    { icon: 'done', text: 'SISTEM SIAP!' },
   ]
 
   useEffect(()=>{
@@ -133,7 +133,7 @@ function LoadingScreen({done}:{done:boolean}) {
 
   return (
     <div className={`ls-wrap ${done?'done':''}`}>
-      <div className="ls-logo">⚡ AWR</div>
+      <div className="ls-logo">AWR</div>
       <div className="ls-sub">Key System v3 · by Sanzxmzz</div>
       <div className="ls-container">
         <div className="ls-steps">
@@ -143,7 +143,7 @@ function LoadingScreen({done}:{done:boolean}) {
             const isWait = i > stepIdx
             return (
               <div key={i} className={`ls-step ${isDone?'done':isActive?'active':'wait'}`}>
-                <div className="ls-step-icon">{isDone ? '✓' : s.icon}</div>
+                <div className="ls-step-icon">{isDone ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> : s.icon==='connect' ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg> : s.icon==='shield' ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}</div>
                 <div className="ls-step-text">{s.text}</div>
               </div>
             )
@@ -186,321 +186,18 @@ function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
       <div className="auth-wrap">
         <div className="auth-box">
           <div className="auth-logo">
-            <div className="auth-logo-text">⚡ AWR</div>
+            <div className="auth-logo-text">AWR</div>
             <div className="auth-logo-sub">Key System v3 · by Sanzxmzz</div>
           </div>
           <div className="card" style={{background:'linear-gradient(160deg,rgba(255,77,255,.06),rgba(79,172,254,.04))',border:'1px solid rgba(255,77,255,.15)'}}>
             <div className="tabs" style={{marginBottom:20}}>
               {(['login','register'] as const).map(m=>(
                 <button key={m} className={`tab-btn ${mode===m?'active':''}`} onClick={()=>setMode(m)}>
-                  <span className="tab-icon">{m==='login'?'🔑':'✨'}</span>
-                  <span className="tab-lbl">{m==='login'?'Login':'Daftar'}</span>
+                  <span className="tab-icon">{m==='login'?<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M17.5 8.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z"/><path d="M10.5 12.5L14 9"/></svg>:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>}</span>
+                  <span className="tab-lbl">{m==='login'?'Masuk':'Daftar'}</span>
                 </button>
               ))}
             </div>
-            <form onSubmit={submit}>
-              <div className="form-group">
-                <label className="form-label">Username</label>
-                <input className="form-input" placeholder="Username kamu" value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))} required/>
-              </div>
-              {mode==='register'&&(
-                <div className="form-group" style={{animation:'fadeUp .25s ease'}}>
-                  <label className="form-label">Email</label>
-                  <input className="form-input" type="email" placeholder="Email kamu" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))} required/>
-                </div>
-              )}
-              <div className="form-group">
-                <label className="form-label">Password</label>
-                <div className="form-pw-wrap">
-                  <input className="form-input" type={showPw?'text':'password'} placeholder="Password kamu" value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} required/>
-                  <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}>{showPw?'🙈':'👁️'}</button>
-                </div>
-              </div>
-              {mode==='login'&&(
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                  <label className="form-check"><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/>Ingat 30 hari</label>
-                  <span style={{fontSize:'.83rem',color:'var(--accent)',cursor:'pointer'}} onClick={()=>setShowForgot(true)}>Lupa password?</span>
-                </div>
-              )}
-              {mode==='register'&&(
-                <div style={{background:'rgba(34,197,94,.06)',border:'1px solid rgba(34,197,94,.2)',borderRadius:10,padding:'10px 14px',marginBottom:16,fontSize:'.82rem',color:'#4ade80'}}>
-                  🎁 Daftar sekarang → dapat key 24 jam gratis otomatis!
-                </div>
-              )}
-              <button className="btn btn-primary btn-full" disabled={loading}>
-                {loading?<><span className="spinner"/>Loading...</>:mode==='login'?'🔑 Masuk':'✨ Daftar Sekarang'}
-              </button>
-            </form>
-            <div style={{textAlign:'center',marginTop:14,fontSize:'.83rem',color:'var(--text2)'}}>
-              {mode==='login'?<>Belum punya akun? <span style={{color:'var(--accent)',cursor:'pointer'}} onClick={()=>setMode('register')}>Daftar →</span></>:<>Sudah punya akun? <span style={{color:'var(--accent)',cursor:'pointer'}} onClick={()=>setMode('login')}>Login →</span></>}
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
-
-// ─── Forgot Password Modal ───────────────────────────────────
-function ForgotModal({open,onClose}:{open:boolean;onClose:()=>void}) {
-  const [step, setStep] = useState<'email'|'code'>('email')
-  const [email, setEmail] = useState('')
-  const [uname, setUname] = useState('')
-  const [code, setCode] = useState('')
-  const [newPw, setNewPw] = useState('')
-  const [showPw, setShowPw] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  function reset() { setStep('email'); setEmail(''); setCode(''); setNewPw('') }
-
-  async function sendCode(e:React.FormEvent) {
-    e.preventDefault(); setLoading(true)
-    const d = await api('/auth/forgot-password','POST',{email})
-    setLoading(false)
-    if(d.error){toast(d.error,'error'); return}
-    setUname(d.username||email); setStep('code')
-    toast('Kode dikirim ke email kamu!','success')
-  }
-
-  async function resetPw(e:React.FormEvent) {
-    e.preventDefault(); setLoading(true)
-    const d = await api('/auth/reset-password','POST',{email,code,newPassword:newPw})
-    setLoading(false)
-    if(d.error){toast(d.error,'error'); return}
-    toast('Password berhasil direset!','success','Reset Berhasil')
-    onClose(); reset()
-  }
-
-  return (
-    <Modal open={open} onClose={()=>{onClose();reset()}} title="🔑 Lupa Password">
-      {step==='email'?(
-        <form onSubmit={sendCode}>
-          <p style={{fontSize:'.85rem',color:'var(--text2)',marginBottom:16}}>Masukkan email akun kamu. Kode verifikasi akan dikirim.</p>
-          <div className="form-group">
-            <label className="form-label">Email</label>
-            <input className="form-input" type="email" placeholder="Email kamu..." value={email} onChange={e=>setEmail(e.target.value)} required/>
-          </div>
-          <button className="btn btn-primary btn-full" disabled={loading}>
-            {loading?<><span className="spinner"/>Mengirim...</>:'📧 Kirim Kode'}
-          </button>
-        </form>
-      ):(
-        <form onSubmit={resetPw}>
-          <div style={{background:'rgba(0,0,0,.3)',border:'1px solid var(--border2)',borderRadius:12,padding:18,marginBottom:16}}>
-            <div style={{fontSize:'.72rem',color:'var(--text2)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Kode Verifikasi</div>
-            <div style={{fontSize:'.83rem',color:'var(--text2)',marginBottom:12}}>Akun: <strong style={{color:'var(--accent)'}}>{uname}</strong></div>
-            <input className="form-input" style={{fontFamily:'Rajdhani,monospace',fontSize:'2rem',fontWeight:700,letterSpacing:8,textAlign:'center',color:'var(--accent)'}}
-              placeholder="000000" value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,6))} maxLength={6} required/>
-            <div style={{textAlign:'center',marginTop:8,fontSize:'.7rem',color:'var(--text3)'}}>⏰ Berlaku 20 menit</div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Password Baru</label>
-            <div className="form-pw-wrap">
-              <input className="form-input" type={showPw?'text':'password'} placeholder="Password baru min 6 karakter" value={newPw} onChange={e=>setNewPw(e.target.value)} required minLength={6}/>
-              <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}>{showPw?'🙈':'👁️'}</button>
-            </div>
-          </div>
-          <div style={{display:'flex',gap:10}}>
-            <button className="btn btn-primary" style={{flex:1}} disabled={loading}>
-              {loading?<><span className="spinner"/>Reset...</>:'🔓 Reset Password'}
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={()=>setStep('email')}>← Back</button>
-          </div>
-        </form>
-      )}
-    </Modal>
-  )
-}
-
-// ─── GetKey Modal ────────────────────────────────────────────
-function GetKeyModal({open,onClose,token,onDone}:{open:boolean;onClose:()=>void;token:string;onDone:()=>void}) {
-  const [steps, setSteps] = useState<any[]>([])
-  const [currentStep, setCurrentStep] = useState(0)
-  const [completed, setCompleted] = useState<string[]>([])
-  const [timer, setTimer] = useState(0)
-  const [timerRunning, setTimerRunning] = useState(false)
-  const [key, setKey] = useState<any>(null)
-  const [claiming, setClaiming] = useState(false)
-  const timerRef = useRef<any>(null)
-
-  useEffect(()=>{
-    if(open) {
-      api('/getkey-verify').then(d=>{ if(d.steps) setSteps(d.steps) })
-      setCurrentStep(0); setCompleted([]); setKey(null); setTimer(0); setTimerRunning(false)
-    }
-    return ()=>clearTimeout(timerRef.current)
-  },[open])
-
-  useEffect(()=>{
-    if(timerRunning && timer > 0) {
-      timerRef.current = setTimeout(()=>setTimer(t=>t-1), 1000)
-    } else if(timerRunning && timer === 0) {
-      setTimerRunning(false)
-      const step = steps[currentStep]
-      if(step && !completed.includes(step.id)) {
-        const newCompleted = [...completed, step.id]
-        setCompleted(newCompleted)
-        if(currentStep < steps.length-1) setCurrentStep(s=>s+1)
-      }
-    }
-    return ()=>clearTimeout(timerRef.current)
-  },[timer, timerRunning])
-
-  function openStep(step:any) {
-    window.open(step.url,'_blank')
-    setTimer(step.duration_seconds)
-    setTimerRunning(true)
-  }
-
-  async function claim() {
-    setClaiming(true)
-    const d = await api('/getkey-verify','POST',{completed_steps:completed},token)
-    setClaiming(false)
-    if(d.error){toast(d.error,'error'); return}
-    setKey(d.key); onDone()
-    toast('Key 24 jam berhasil didapat!','success','🎉 Yeay!')
-  }
-
-  const allDone = steps.length > 0 && steps.every(s=>completed.includes(s.id))
-
-  return (
-    <Modal open={open} onClose={()=>{if(!timerRunning){onClose();setKey(null)}}} title="🎁 Get Free Key 24 Jam">
-      {key?(
-        <div style={{textAlign:'center',padding:'8px 0'}}>
-          <div style={{fontSize:'3rem',marginBottom:12,animation:'float 3s ease-in-out infinite'}}>🎉</div>
-          <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.4rem',fontWeight:700,color:'var(--green)',marginBottom:16}}>Key Berhasil Didapat!</div>
-          <div className="key-box" style={{marginBottom:12,textAlign:'left'}} onClick={()=>{copyText(key.key_value);toast('Key disalin!','success')}}>
-            {key.key_value}<span className="copy-hint">klik copy</span>
-          </div>
-          <div style={{fontSize:'.82rem',color:'var(--text2)',marginBottom:20}}>Berlaku: {fmtDate(key.expires_at)}</div>
-          <button className="btn btn-ghost btn-full" onClick={()=>{onClose();setKey(null)}}>Tutup</button>
-        </div>
-      ):(
-        <>
-          <div style={{marginBottom:20}}>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:'.75rem',color:'var(--text2)',marginBottom:6}}>
-              <span>Progress</span><span>{completed.length}/{steps.length} selesai</span>
-            </div>
-            <div className="gk-progress">
-              <div className="gk-progress-fill" style={{width:`${steps.length?completed.length/steps.length*100:0}%`}}/>
-            </div>
-          </div>
-
-          {steps.map((step,i)=>{
-            const done = completed.includes(step.id)
-            const isCurrent = i===currentStep && !done
-            const isLocked = i>currentStep && !done
-            return (
-              <div key={step.id} className={`gk-step ${done?'done':isCurrent?'active':''}`}>
-                <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <div className={`gk-num ${done?'done':isCurrent?'active':'waiting'}`}>
-                    {done?'✓':isLocked?'🔒':i+1}
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontWeight:700,fontSize:'.9rem',color:done?'var(--green)':isCurrent?'var(--text)':'var(--text3)'}}>{step.name}</div>
-                    <div style={{fontSize:'.72rem',color:'var(--text3)',marginTop:2}}>⏱️ Tunggu {step.duration_seconds} detik</div>
-                  </div>
-                  {!done&&!isLocked&&(
-                    isCurrent&&timerRunning
-                      ?<div style={{textAlign:'center',minWidth:52}}>
-                        <div style={{fontFamily:'Rajdhani',fontSize:'1.5rem',fontWeight:700,color:'var(--accent)',lineHeight:1}}>{timer}</div>
-                        <div style={{fontSize:'.65rem',color:'var(--text3)'}}>detik</div>
-                      </div>
-                      :<button className="btn btn-primary btn-sm" onClick={()=>openStep(step)} disabled={isLocked||timerRunning}>Buka →</button>
-                  )}
-                  {done&&<span style={{color:'var(--green)',fontWeight:700}}>✓</span>}
-                </div>
-                {isCurrent&&timerRunning&&(
-                  <div className="gk-progress" style={{marginTop:10}}>
-                    <div className="gk-progress-fill" style={{width:`${(1-timer/step.duration_seconds)*100}%`}}/>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-          {!steps.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:'20px 0'}}>⏳ Loading steps...</div>}
-          <div style={{marginTop:16,display:'flex',gap:10}}>
-            <button className={`btn btn-full ${allDone?'btn-success':'btn-ghost'}`} onClick={claim} disabled={!allDone||claiming}>
-              {claiming?<><span className="spinner"/>Memproses...</>:allDone?'🎁 Ambil Key Sekarang!':'⏳ Selesaikan Semua Step Dulu'}
-            </button>
-          </div>
-        </>
-      )}
-    </Modal>
-  )
-}
-
-// ─── User Dashboard ──────────────────────────────────────────
-function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>void}) {
-  const [data, setData] = useState<any>(null)
-  const [tab, setTab] = useState('dash')
-  const [loading, setLoading] = useState(true)
-  const [getkeyOpen, setGetkeyOpen] = useState(false)
-  const [editOpen, setEditOpen] = useState(false)
-  const [ef, setEf] = useState({username:'',roblox_username:'',avatar_url:'',background_url:'',background_type:'image',password:''})
-  const [showPw, setShowPw] = useState(false)
-  const [saving, setSaving] = useState(false)
-
-  const load = useCallback(async()=>{
-    setLoading(true)
-    const d = await api('/user/profile','GET',undefined,token)
-    if(d.user) {
-      setData(d)
-      setEf({username:d.user.username,roblox_username:d.user.roblox_username||'',avatar_url:d.user.avatar_url||'',background_url:d.user.background_url||'',background_type:d.user.background_type||'image',password:''})
-    } else if(d.error) {
-      toast(d.error,'error')
-    }
-    setLoading(false)
-  },[token])
-
-  useEffect(()=>{load()},[load])
-
-  async function saveProfile() {
-    setSaving(true)
-    const payload:any = {
-      username: ef.username,
-      roblox_username: ef.roblox_username,
-      avatar_url: ef.avatar_url,
-      background_url: ef.background_url,
-      background_type: ef.background_type,
-    }
-    if (ef.password && ef.password.length >= 6) payload.password = ef.password
-    const d = await api('/user/profile','PATCH',payload,token)
-    setSaving(false)
-    if(d.error){toast(d.error,'error'); return}
-    toast('Profil berhasil diupdate!','success')
-    setEditOpen(false); load()
-  }
-
-  if(loading) return (
-    <div style={{height:'60vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16}}>
-      <div style={{width:40,height:40,border:'2px solid rgba(255,255,255,.1)',borderTopColor:'var(--accent-purple)',borderRadius:'50%',animation:'spin .7s linear infinite',boxShadow:'0 0 20px rgba(255,77,255,.2)'}}/>
-      <div style={{fontSize:'.85rem',color:'var(--text3)',fontFamily:'Rajdhani,sans-serif',letterSpacing:2,textTransform:'uppercase'}}>Memuat data...</div>
-    </div>
-  )
-  if(!data) return null
-
-  const {key, allKeys, notifications, announcements} = data
-  const u = data.user
-  const unread = notifications?.filter((n:any)=>!n.is_read).length||0
-  const expiredKeys = (allKeys||[]).filter((k:KeyData)=>isExpired(k.expires_at)||!k.is_active)
-
-  return (
-    <>
-      <GetKeyModal open={getkeyOpen} onClose={()=>setGetkeyOpen(false)} token={token} onDone={load}/>
-
-      <div className="tabs">
-        {([
-          ['dash','🏠','Dashboard'],
-          ['notifs',`🔔`,`Notif${unread>0?` (${unread})`:''}`],
-          ['profile','👤','Profil']
-        ] as [string,string,string][]).map(([v,icon,lbl],i)=>(
-          <button key={v} className={`tab-btn ${tab===v?'active':''}`} onClick={()=>{setTab(v);if(v==='notifs')api('/user/read-notifs','POST',{},token).then(load)}} style={{animation:`tabSlideIn .3s ease ${i*.07}s both`}}>
-            <span className="tab-icon">{icon}</span>
-            <span className="tab-lbl">{lbl}</span>
-          </button>
-        ))}
-      </div>
 
       {/* DASHBOARD */}
       {tab==='dash'&&(
@@ -520,7 +217,7 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
                       <span className="ping-dot" style={{width:6,height:6,marginRight:5}}/>{key.is_active&&!isExpired(key.expires_at)?'Aktif':'Expired'}
                     </span>
                     <span className="badge badge-blue">{DUR[key.duration_type]||key.duration_type}</span>
-                    {key.is_free_key&&<span className="badge badge-yellow">🎁 Free</span>}
+                    {key.is_free_key&&<span className="badge badge-yellow">Free</span>}
                   </div>
                 </div>
                 <div className="key-box" style={{marginBottom:16}} onClick={()=>{copyText(key.key_value);toast('Key berhasil disalin!','success')}}>
@@ -539,10 +236,10 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
             </div>
           ):(
             <div className="card" style={{textAlign:'center',padding:'44px 24px',animation:'fadeUp .35s ease',background:'linear-gradient(160deg,rgba(255,77,255,.06),rgba(79,172,254,.04))',borderColor:'rgba(255,77,255,.12)'}}>
-              <div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}>🔒</div>
+              <div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" style={{opacity:.3}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
               <div style={{fontWeight:700,fontSize:'1.05rem',marginBottom:8,fontFamily:'Rajdhani,sans-serif'}}>KAMU BELUM PUNYA KEY AKTIF</div>
               <div style={{fontSize:'.84rem',color:'var(--text2)',marginBottom:20}}>Beli dari reseller atau klaim key gratis 24 jam</div>
-              <button className="btn btn-primary" onClick={()=>setGetkeyOpen(true)}>🎁 Get Free Key 24 Jam</button>
+              <button className="btn btn-primary" onClick={()=>setGetkeyOpen(true)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>Get Free Key 24 Jam</button>
             </div>
           )}
 
@@ -564,10 +261,10 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
           {/* Expired keys */}
           {expiredKeys.length>0&&(
             <div className="card" style={{animation:'fadeUp .45s ease'}}>
-              <div className="sec-title">📋 Riwayat Key</div>
+              <div className="sec-title"><svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' style={{marginRight:6,display:'inline-block',verticalAlign:'middle'}}><rect x='2' y='7' width='20' height='14' rx='2'/><path d='M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2'/></svg>Riwayat Key</div>
               {expiredKeys.slice(0,5).map((k:KeyData)=>(
                 <div key={k.id} className="expired-key">
-                  <span style={{fontSize:'1.2rem'}}>{k.is_free_key?'🎁':'🔑'}</span>
+                  <span style={{fontSize:'1.2rem'}}>k.is_free_key?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M17.5 8.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z"/><path d="M10.5 12.5L14 9"/></svg></span>
                   <div className="expired-key-val">{k.key_value}</div>
                   <div>
                     <div className="expired-key-info">{!k.is_active?'Dinonaktifkan':'Expired'}</div>
@@ -575,14 +272,14 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
                   </div>
                 </div>
               ))}
-              {key&&<button className="btn btn-primary btn-sm" style={{marginTop:8}} onClick={()=>setGetkeyOpen(true)}>🎁 Klaim Key Baru</button>}
+              {key&&<button className="btn btn-primary btn-sm" style={{marginTop:8}} onClick={()=>setGetkeyOpen(true)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/></svg>Klaim Key Baru</button>}
             </div>
           )}
 
           {/* Announcements */}
           {announcements?.length>0&&(
             <div className="card" style={{animation:'fadeUp .5s ease'}}>
-              <div className="sec-title">📢 Pengumuman</div>
+              <div className="sec-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6,display:"inline-block",verticalAlign:"middle"}}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Pengumuman</div>
               {announcements.map((a:any)=>(
                 <div key={a.id} className="ann-item">
                   <div className="ann-title">{a.title}</div>
@@ -601,7 +298,7 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
       {/* NOTIFS */}
       {tab==='notifs'&&(
         <div className="card" style={{animation:'fadeUp .3s ease'}}>
-          <div className="sec-title">🔔 Notifikasi</div>
+          <div className="sec-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6,display:"inline-block",verticalAlign:"middle"}}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notifikasi</div>
           {!notifications?.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:40}}>Tidak ada notifikasi</div>}
           {notifications?.map((n:any,i:number)=>(
             <div key={n.id} style={{padding:'12px 14px',borderRadius:12,marginBottom:8,background:n.is_read?'transparent':'rgba(0,102,204,.06)',border:`1px solid ${n.is_read?'transparent':'rgba(0,170,255,.14)'}`,animation:`fadeUp .25s ease ${i*.04}s both`,transition:'all .2s'}}>
@@ -631,16 +328,16 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
             <div className="profile-info">
               <div className="profile-row">
                 <div className="profile-avatar">
-                  {u.avatar_url?<img src={u.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:'👤'}
+                  {u.avatar_url?<img src={u.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>}
                 </div>
                 <div style={{flex:1}}>
                   <div className="profile-name">{u.username}</div>
                   <div className="profile-email">{u.email}</div>
                 </div>
-                <button className="btn btn-primary btn-sm" onClick={()=>setEditOpen(true)}>✏️ Edit Profil</button>
+                <button className="btn btn-primary btn-sm" onClick={()=>setEditOpen(true)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Profil</button>
               </div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:12}}>
-                {[['Role',u.role==='developer'?'👑 Developer':u.role==='reseller'?'🏪 Reseller':'👤 User',u.role==='developer'?'var(--purple)':u.role==='reseller'?'var(--yellow)':'var(--accent)'],['Roblox',u.roblox_username||'-','var(--text)'],['Bergabung',u.created_at?new Date(u.created_at).toLocaleDateString('id-ID'):'-','var(--text)'],['Total Exec',u.total_executions||0,'var(--accent)']].map(([l,v,c])=>(
+                {[['Role',u.role==='developer'?'Developer':u.role==='reseller'?'Reseller':'User',u.role==='developer'?'var(--purple)':u.role==='reseller'?'var(--yellow)':'var(--accent)'],['Roblox',u.roblox_username||'-','var(--text)'],['Bergabung',u.created_at?new Date(u.created_at).toLocaleDateString('id-ID'):'-','var(--text)'],['Total Exec',u.total_executions||0,'var(--accent)']].map(([l,v,c])=>(
                   <div key={l as string} className="stat-box">
                     <div style={{fontSize:'.65rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1.5,marginBottom:5}}>{l}</div>
                     <div style={{fontWeight:700,color:c as string,fontSize:'.92rem',fontFamily:'Rajdhani,sans-serif'}}>{v}</div>
@@ -653,7 +350,7 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
       )}
 
       {/* Edit Profile Modal */}
-      <Modal open={editOpen} onClose={()=>setEditOpen(false)} title="✏️ Edit Profil">
+      <Modal open={editOpen} onClose={()=>setEditOpen(false)} title="Edit Profil">
         <div className="form-group"><label className="form-label">Username</label><input className="form-input" value={ef.username} onChange={e=>setEf(f=>({...f,username:e.target.value}))}/></div>
         <div className="form-group"><label className="form-label">Roblox Username</label><input className="form-input" placeholder="Username Roblox..." value={ef.roblox_username} onChange={e=>setEf(f=>({...f,roblox_username:e.target.value}))}/></div>
         <div className="divider"/>
@@ -668,12 +365,12 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
         <div className="form-group"><label className="form-label">Password Baru (kosong = tidak ganti)</label>
           <div className="form-pw-wrap">
             <input className="form-input" type={showPw?'text':'password'} placeholder="Password baru..." value={ef.password} onChange={e=>setEf(f=>({...f,password:e.target.value}))}/>
-            <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}>{showPw?'🙈':'👁️'}</button>
+            <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{showPw?(<><path d='M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94'/><path d='M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19'/><line x1='1' y1='1' x2='23' y2='23'/></>):(<><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></>)}</svg></button>
           </div>
         </div>
         <div style={{display:'flex',gap:10}}>
           <button className="btn btn-primary" style={{flex:1}} onClick={saveProfile} disabled={saving}>
-            {saving?<><span className="spinner"/>Menyimpan...</>:'💾 Simpan'}
+            {saving?<><span className="spinner"/>Menyimpan...</>:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Simpan</>}
           </button>
           <button className="btn btn-ghost" onClick={()=>setEditOpen(false)}>Batal</button>
         </div>
@@ -726,7 +423,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
     <>
       <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:28}}>
         <div>
-          <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>🗺️ Route Library</div>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Route Library</div>
           <div style={{color:'var(--text3)',fontSize:'.85rem',marginTop:4}}>Download & upload rute AWR Script</div>
         </div>
         {user&&<button className="btn btn-primary" onClick={()=>setUploadOpen(true)}>⬆️ Upload Route</button>}
@@ -738,9 +435,9 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
             <div className="route-body">
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
                 <div className="route-name">{r.name}</div>
-                {!r.is_public&&<span className="badge badge-yellow" style={{fontSize:'.6rem'}}>{r.has_password?'🔐':'🔒'}</span>}
+                {!r.is_public&&<span className="badge badge-yellow" style={{fontSize:'.6rem'}}>{r.has_password?'locked':'locked'}</span>}
               </div>
-              {r.game_name&&<div className="route-game">🎮 {r.game_name}</div>}
+              {r.game_name&&<div className="route-game">{r.game_name}</div>}
               {r.description&&<div className="route-desc">{r.description}</div>}
               <div className="route-footer">
                 <div style={{fontSize:'.72rem',color:'var(--text3)'}}>by {r.uploader?.username||'anon'}</div>
@@ -749,7 +446,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
             </div>
           </div>
         ))}
-        {!loading&&!routes.length&&<div style={{gridColumn:'1/-1',textAlign:'center',padding:'70px 0',color:'var(--text2)'}}><div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}>🗺️</div>Belum ada route</div>}
+        {!loading&&!routes.length&&<div style={{gridColumn:'1/-1',textAlign:'center',padding:'70px 0',color:'var(--text2)'}}><div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite',opacity:.2,display:'flex',justifyContent:'center'}}><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg></div>Belum ada route</div>}
       </div>
 
       {/* Upload */}
@@ -771,7 +468,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
           <div className="form-group">
             <label className="form-label">Visibilitas</label>
             <select className="form-select" value={form.is_public?'pub':'priv'} onChange={e=>setForm(f=>({...f,is_public:e.target.value==='pub'}))}>
-              <option value="pub">🌐 Public</option><option value="priv">🔒 Private</option>
+              <option value="pub">Public</option><option value="priv">Private</option>
             </select>
           </div>
           {!form.is_public&&<div className="form-group"><label className="form-label">Password Akses</label><input className="form-input" placeholder="Password..." value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))}/></div>}
@@ -788,18 +485,18 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
           {detail.description&&<p style={{fontSize:'.85rem',color:'var(--text2)',marginBottom:14}}>{detail.description}</p>}
           <textarea rows={8} readOnly value={JSON.stringify(detail.data,null,2)} className="form-textarea" style={{fontFamily:'monospace',fontSize:'.74rem'}}/>
           <div style={{display:'flex',gap:10,marginTop:14}}>
-            <button className="btn btn-primary" style={{flex:1}} onClick={()=>{copyText(JSON.stringify(detail.data));toast('Data disalin!','success')}}>📋 Copy Data</button>
+            <button className="btn btn-primary" style={{flex:1}} onClick={()=>{copyText(JSON.stringify(detail.data));toast('Data disalin!','success')}}>Copy Data</button>
             <button className="btn btn-ghost" onClick={()=>{const b=new Blob([JSON.stringify(detail.data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`${detail.name}.json`;a.click();toast('Downloaded!','success')}}>⬇️ .json</button>
           </div>
         </>}
       </Modal>
 
       {/* Password */}
-      <Modal open={!!pwModal} onClose={()=>{setPwModal(null);setPw('')}} title={`🔐 ${pwModal?.name||''}`}>
+      <Modal open={!!pwModal} onClose={()=>{setPwModal(null);setPw('')}} title={pwModal?.name||''}>
         <p style={{fontSize:'.85rem',color:'var(--text2)',marginBottom:14}}>Route ini private. Masukkan password.</p>
         <div className="form-group"><input className="form-input" type="password" placeholder="Password..." value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&openWithPw()}/></div>
         <div style={{display:'flex',gap:10}}>
-          <button className="btn btn-primary" style={{flex:1}} onClick={openWithPw}>🔓 Akses</button>
+          <button className="btn btn-primary" style={{flex:1}} onClick={openWithPw}>Akses</button>
           <button className="btn btn-ghost" onClick={()=>{setPwModal(null);setPw('')}}>Batal</button>
         </div>
       </Modal>
@@ -816,7 +513,7 @@ function LeaderboardPage() {
   return (
     <>
       <div style={{marginBottom:28}}>
-        <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>🏆 Leaderboard</div>
+        <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>Leaderboard</div>
         <div style={{color:'var(--text3)',fontSize:'.85rem',marginTop:4}}>Top executor AWR Script</div>
       </div>
       <div style={{maxWidth:640}}>
@@ -833,7 +530,7 @@ function LeaderboardPage() {
             </div>
           </div>
         ))}
-        {!loading&&!lb.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:'70px 0'}}><div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}>🏆</div>Belum ada data</div>}
+        {!loading&&!lb.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:'70px 0'}}><div style={{marginBottom:14,animation:'float 3s ease-in-out infinite',opacity:.2,display:'flex',justifyContent:'center'}}><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21H5a2 2 0 01-2-2v-5"/><path d="M16 21h3a2 2 0 002-2v-9"/><path d="M12 21V11"/><path d="M3 10l9-7 9 7"/></svg></div>Belum ada data</div>}
       </div>
     </>
   )
@@ -879,7 +576,7 @@ export default function App() {
         ?<AuthPage onAuth={onAuth}/>
         :<div style={{position:'relative',zIndex:1,minHeight:'100vh'}}>
           <nav className="navbar">
-            <div className="navbar-brand" onClick={()=>setPage('dash')}>⚡ AWR</div>
+            <div className="navbar-brand" onClick={()=>setPage('dash')}>AWR</div>
             <div className="navbar-nav">
               <span style={{fontFamily:'Rajdhani,sans-serif',fontSize:'.75rem',color:'rgba(140,140,160,.5)',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)',borderRadius:8,padding:'3px 10px',letterSpacing:.5}}>{user!.username}</span>
             </div>
