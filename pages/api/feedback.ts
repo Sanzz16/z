@@ -18,9 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.json({ feedbacks: data || [] })
   }
 
-  // POST - kirim feedback baru (dari Lua script Roblox)
+  // POST - kirim feedback baru (dari Lua script Roblox ATAU dari website)
   if (req.method === 'POST') {
-    const { type, message, rating, roblox_name, website_username, hwid } = req.body
+    const { type, message, rating, roblox_name, roblox_username, website_username, hwid } = req.body
+    const robloxSource = roblox_name || roblox_username || 'Anonymous'
 
     // Validasi wajib
     if (!type || !message || !rating) {
@@ -43,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return name.slice(0,3) + '*'.repeat(stars) + name.slice(-2)
     }
 
-    const maskedRoblox = maskName(roblox_name || 'Anonymous')
+    const maskedRoblox = maskName(robloxSource)
 
     const { data, error } = await supabaseAdmin
       .from('feedbacks')
