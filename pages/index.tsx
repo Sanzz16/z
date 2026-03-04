@@ -92,7 +92,7 @@ function Particles() {
     const c = ref.current; if(!c) return
     const ctx = c.getContext('2d')!
     let W = c.width = window.innerWidth, H = c.height = window.innerHeight
-    const pts = Array.from({length:55},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:Math.random()*1.5+.4,a:Math.random()*.4+.15}))
+    const pts = Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,r:Math.random()*1.6+.4,a:Math.random()*.35+.12}))
     const resize = ()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight}
     window.addEventListener('resize',resize)
     let raf:number
@@ -102,11 +102,11 @@ function Particles() {
         p.x+=p.vx; p.y+=p.vy
         if(p.x<0)p.x=W; if(p.x>W)p.x=0; if(p.y<0)p.y=H; if(p.y>H)p.y=0
         ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2)
-        ctx.fillStyle=`rgba(0,170,255,${p.a*.4})`; ctx.fill()
+        ctx.fillStyle=`rgba(255,77,255,${p.a*.32})`; ctx.fill()
       })
       for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++) {
         const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy)
-        if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(0,102,204,${(1-d/120)*.1})`;ctx.lineWidth=.5;ctx.stroke()}
+        if(d<130){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(79,172,254,${(1-d/130)*.07})`;ctx.lineWidth=.5;ctx.stroke()}
       }
       raf=requestAnimationFrame(draw)
     }
@@ -116,13 +116,42 @@ function Particles() {
   return <canvas ref={ref} className="particles-canvas"/>
 }
 
-// ─── Loading Screen ──────────────────────────────────────────
+// ─── Enhanced Loading Screen ──────────────────────────────────
 function LoadingScreen({done}:{done:boolean}) {
+  const [stepIdx, setStepIdx] = useState(0)
+  const steps = [
+    { icon: '⚡', text: 'MENGHUBUNGKAN SERVER...' },
+    { icon: '🔐', text: 'MEMUAT KEAMANAN...' },
+    { icon: '✅', text: 'SISTEM SIAP!' },
+  ]
+
+  useEffect(()=>{
+    const t1 = setTimeout(()=>setStepIdx(1), 700)
+    const t2 = setTimeout(()=>setStepIdx(2), 1400)
+    return ()=>{ clearTimeout(t1); clearTimeout(t2) }
+  },[])
+
   return (
     <div className={`ls-wrap ${done?'done':''}`}>
       <div className="ls-logo">⚡ AWR</div>
       <div className="ls-sub">Key System v3 · by Sanzxmzz</div>
-      <div className="ls-bar"><div className="ls-bar-fill"/></div>
+      <div className="ls-container">
+        <div className="ls-steps">
+          {steps.map((s,i)=>{
+            const isDone = i < stepIdx
+            const isActive = i === stepIdx
+            const isWait = i > stepIdx
+            return (
+              <div key={i} className={`ls-step ${isDone?'done':isActive?'active':'wait'}`}>
+                <div className="ls-step-icon">{isDone ? '✓' : s.icon}</div>
+                <div className="ls-step-text">{s.text}</div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="ls-bar"><div className="ls-bar-fill"/></div>
+        <div className="ls-status">INITIALIZING AWR SYSTEM...</div>
+      </div>
       <div className="ls-dots">
         <div className="ls-dot"/><div className="ls-dot"/><div className="ls-dot"/>
       </div>
@@ -160,7 +189,7 @@ function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
             <div className="auth-logo-text">⚡ AWR</div>
             <div className="auth-logo-sub">Key System v3 · by Sanzxmzz</div>
           </div>
-          <div className="card">
+          <div className="card" style={{background:'linear-gradient(160deg,rgba(255,77,255,.06),rgba(79,172,254,.04))',border:'1px solid rgba(255,77,255,.15)'}}>
             <div className="tabs" style={{marginBottom:20}}>
               {(['login','register'] as const).map(m=>(
                 <button key={m} className={`tab-btn ${mode===m?'active':''}`} onClick={()=>setMode(m)}>
@@ -443,9 +472,9 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
   }
 
   if(loading) return (
-    <div style={{height:'60vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12}}>
-      <div style={{width:36,height:36,border:'2px solid rgba(255,255,255,.1)',borderTopColor:'var(--accent)',borderRadius:'50%',animation:'spin .7s linear infinite'}}/>
-      <div style={{fontSize:'.85rem',color:'var(--text2)'}}>Memuat data...</div>
+    <div style={{height:'60vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16}}>
+      <div style={{width:40,height:40,border:'2px solid rgba(255,255,255,.1)',borderTopColor:'var(--accent-purple)',borderRadius:'50%',animation:'spin .7s linear infinite',boxShadow:'0 0 20px rgba(255,77,255,.2)'}}/>
+      <div style={{fontSize:'.85rem',color:'var(--text3)',fontFamily:'Rajdhani,sans-serif',letterSpacing:2,textTransform:'uppercase'}}>Memuat data...</div>
     </div>
   )
   if(!data) return null
@@ -460,7 +489,7 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
       <GetKeyModal open={getkeyOpen} onClose={()=>setGetkeyOpen(false)} token={token} onDone={load}/>
 
       <div className="tabs">
-        {[['dash','🏠 Dashboard'],[`notifs${unread>0?` (${unread})`:''}`, `🔔 Notif${unread>0?` (${unread})`:''}`],['profile','👤 Profil']].map((item,i)=>{
+        {[['dash','🏠 Dashboard'],[`notifs`, `🔔 Notif${unread>0?` (${unread})`:''}`],['profile','👤 Profil']].map((item,i)=>{
           const v = i===0?'dash':i===1?'notifs':'profile'
           const l = item[1] as string
           return (
@@ -472,34 +501,42 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
       {/* DASHBOARD */}
       {tab==='dash'&&(
         <div style={{animation:'fadeUp .3s ease'}}>
-          {/* Key aktif */}
+
+          {/* Hero Key Card */}
           {key?(
-            <div className="card card-key" style={{animation:'fadeUp .35s ease'}}>
-              <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8,marginBottom:16}}>
-                <div className="sec-title" style={{margin:0}}>🔑 Key Aktif Kamu</div>
-                <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                  <span className={`badge ${key.is_active&&!isExpired(key.expires_at)?'badge-green':'badge-red'}`}>{key.is_active&&!isExpired(key.expires_at)?'● Aktif':'● Expired'}</span>
-                  <span className="badge badge-blue">{DUR[key.duration_type]||key.duration_type}</span>
-                  {key.is_free_key&&<span className="badge badge-yellow">🎁 Free</span>}
-                </div>
-              </div>
-              <div className="key-box" style={{marginBottom:16}} onClick={()=>{copyText(key.key_value);toast('Key berhasil disalin!','success')}}>
-                {key.key_value}<span className="copy-hint">klik copy</span>
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-                {[['EXPIRED',fmtDate(key.expires_at),isExpired(key.expires_at)?'var(--red)':'var(--text)'],['SISA WAKTU',timeLeft(key.expires_at),'var(--accent)'],['DIPAKAI',`${key.times_used}×`,'var(--text)']].map(([l,v,c])=>(
-                  <div key={l as string}>
-                    <div style={{fontSize:'.7rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>{l}</div>
-                    <div style={{fontSize:'.9rem',color:c as string,fontWeight:600}}>{v}</div>
+            <div className="hero-card" style={{animation:'fadeUp .35s ease'}}>
+              <div style={{position:'relative',zIndex:3}}>
+                <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8,marginBottom:16}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div className="sec-indicator" style={{height:22,position:'relative'}}/>
+                    <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>KEY AKTIF KAMU</div>
                   </div>
-                ))}
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                    <span className={`badge ${key.is_active&&!isExpired(key.expires_at)?'badge-green':'badge-red'}`}>
+                      <span className="ping-dot" style={{width:6,height:6,marginRight:5}}/>{key.is_active&&!isExpired(key.expires_at)?'Aktif':'Expired'}
+                    </span>
+                    <span className="badge badge-blue">{DUR[key.duration_type]||key.duration_type}</span>
+                    {key.is_free_key&&<span className="badge badge-yellow">🎁 Free</span>}
+                  </div>
+                </div>
+                <div className="key-box" style={{marginBottom:16}} onClick={()=>{copyText(key.key_value);toast('Key berhasil disalin!','success')}}>
+                  {key.key_value}<span className="copy-hint">klik copy</span>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+                  {[['EXPIRED',fmtDate(key.expires_at),isExpired(key.expires_at)?'var(--red)':'var(--text)'],['SISA WAKTU',timeLeft(key.expires_at),'var(--accent)'],['DIPAKAI',`${key.times_used}×`,'var(--text)']].map(([l,v,c])=>(
+                    <div key={l as string} style={{background:'rgba(0,0,0,.3)',borderRadius:10,padding:'10px 12px',border:'1px solid rgba(255,255,255,.05)'}}>
+                      <div style={{fontSize:'.65rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1.5,marginBottom:4}}>{l}</div>
+                      <div style={{fontSize:'.9rem',color:c as string,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginTop:10,fontSize:'.72rem',color:'var(--text3)'}}>Max HWID: {key.hwid_max} perangkat</div>
               </div>
-              <div style={{marginTop:10,fontSize:'.75rem',color:'var(--text3)'}}>Max HWID: {key.hwid_max} perangkat</div>
             </div>
           ):(
-            <div className="card" style={{textAlign:'center',padding:'40px 24px',animation:'fadeUp .35s ease'}}>
-              <div style={{fontSize:'2.5rem',marginBottom:12}}>🔒</div>
-              <div style={{fontWeight:700,fontSize:'1rem',marginBottom:8}}>Kamu belum punya key aktif</div>
+            <div className="card" style={{textAlign:'center',padding:'44px 24px',animation:'fadeUp .35s ease',background:'linear-gradient(160deg,rgba(255,77,255,.06),rgba(79,172,254,.04))',borderColor:'rgba(255,77,255,.12)'}}>
+              <div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}>🔒</div>
+              <div style={{fontWeight:700,fontSize:'1.05rem',marginBottom:8,fontFamily:'Rajdhani,sans-serif'}}>KAMU BELUM PUNYA KEY AKTIF</div>
               <div style={{fontSize:'.84rem',color:'var(--text2)',marginBottom:20}}>Beli dari reseller atau klaim key gratis 24 jam</div>
               <button className="btn btn-primary" onClick={()=>setGetkeyOpen(true)}>🎁 Get Free Key 24 Jam</button>
             </div>
@@ -507,10 +544,17 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
 
           {/* Stats */}
           <div className="stats-grid">
-            <div className="stat-box"><div className="stat-val" style={{color:'var(--accent)'}}>{u.total_executions||0}</div><div className="stat-lbl">Total Exec</div></div>
-            <div className="stat-box"><div className="stat-val" style={{color:key&&key.is_active&&!isExpired(key.expires_at)?'var(--green)':'var(--red)'}}>{key&&key.is_active&&!isExpired(key.expires_at)?'✓':'✗'}</div><div className="stat-lbl">Key Aktif</div></div>
-            <div className="stat-box"><div className="stat-val" style={{color:'var(--text)'}}>{expiredKeys.length}</div><div className="stat-lbl">Key Expired</div></div>
-            <div className="stat-box"><div className="stat-val" style={{color:'var(--yellow)'}}>{unread}</div><div className="stat-lbl">Notif Baru</div></div>
+            {[
+              {val:u.total_executions||0,lbl:'Total Exec',color:'var(--accent)'},
+              {val:key&&key.is_active&&!isExpired(key.expires_at)?'✓':'✗',lbl:'Key Aktif',color:key&&key.is_active&&!isExpired(key.expires_at)?'var(--green)':'var(--red)'},
+              {val:expiredKeys.length,lbl:'Key Expired',color:'var(--text)'},
+              {val:unread,lbl:'Notif Baru',color:'var(--yellow)'},
+            ].map((s,i)=>(
+              <div key={i} className="stat-box" style={{animationDelay:`${i*.07}s`}}>
+                <div className="stat-val" style={{color:s.color}}>{s.val}</div>
+                <div className="stat-lbl">{s.lbl}</div>
+              </div>
+            ))}
           </div>
 
           {/* Expired keys */}
@@ -556,7 +600,7 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
           <div className="sec-title">🔔 Notifikasi</div>
           {!notifications?.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:40}}>Tidak ada notifikasi</div>}
           {notifications?.map((n:any,i:number)=>(
-            <div key={n.id} style={{padding:'12px 14px',borderRadius:10,marginBottom:8,background:n.is_read?'transparent':'rgba(0,102,204,.06)',border:`1px solid ${n.is_read?'transparent':'rgba(0,170,255,.14)'}`,animation:`fadeUp .25s ease ${i*.04}s both`,transition:'all .2s'}}>
+            <div key={n.id} style={{padding:'12px 14px',borderRadius:12,marginBottom:8,background:n.is_read?'transparent':'rgba(0,102,204,.06)',border:`1px solid ${n.is_read?'transparent':'rgba(0,170,255,.14)'}`,animation:`fadeUp .25s ease ${i*.04}s both`,transition:'all .2s'}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <div style={{fontWeight:700,fontSize:'.88rem'}}>{n.title}</div>
                 {!n.is_read&&<span style={{width:8,height:8,borderRadius:'50%',background:'var(--accent)',display:'inline-block'}}/>}
@@ -594,8 +638,8 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:12}}>
                 {[['Role',u.role==='developer'?'👑 Developer':u.role==='reseller'?'🏪 Reseller':'👤 User',u.role==='developer'?'var(--purple)':u.role==='reseller'?'var(--yellow)':'var(--accent)'],['Roblox',u.roblox_username||'-','var(--text)'],['Bergabung',u.created_at?new Date(u.created_at).toLocaleDateString('id-ID'):'-','var(--text)'],['Total Exec',u.total_executions||0,'var(--accent)']].map(([l,v,c])=>(
                   <div key={l as string} className="stat-box">
-                    <div style={{fontSize:'.7rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>{l}</div>
-                    <div style={{fontWeight:700,color:c as string,fontSize:'.92rem'}}>{v}</div>
+                    <div style={{fontSize:'.65rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1.5,marginBottom:5}}>{l}</div>
+                    <div style={{fontWeight:700,color:c as string,fontSize:'.92rem',fontFamily:'Rajdhani,sans-serif'}}>{v}</div>
                   </div>
                 ))}
               </div>
@@ -648,7 +692,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
     setLoading(true)
     api('/routes','GET',undefined,token).then(d=>{if(d.routes)setRoutes(d.routes);setLoading(false)})
   }
-  useEffect(()=>{load()},[])
+  useEffect(()=>{load()},[] as any)
 
   async function openRoute(r:any) {
     if(!r.is_public&&r.has_password){setPwModal(r);return}
@@ -663,7 +707,6 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
   }
   function onFileChange(e:React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if(!f) return
-    new FileReader().onload = ev=>setForm(f=>({...f,data:ev.target?.result as string||''}))
     const reader = new FileReader(); reader.onload = ev=>setForm(f=>({...f,data:ev.target?.result as string||''})); reader.readAsText(f)
   }
   async function upload(e:React.FormEvent) {
@@ -677,8 +720,11 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
 
   return (
     <>
-      <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:24}}>
-        <div><div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.8rem',fontWeight:700}}>🗺️ Route Library</div><div style={{color:'var(--text2)',fontSize:'.88rem',marginTop:4}}>Download & upload rute AWR Script</div></div>
+      <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:12,marginBottom:28}}>
+        <div>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>🗺️ Route Library</div>
+          <div style={{color:'var(--text3)',fontSize:'.85rem',marginTop:4}}>Download & upload rute AWR Script</div>
+        </div>
         {user&&<button className="btn btn-primary" onClick={()=>setUploadOpen(true)}>⬆️ Upload Route</button>}
       </div>
       <div className="route-grid">
@@ -699,7 +745,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
             </div>
           </div>
         ))}
-        {!loading&&!routes.length&&<div style={{gridColumn:'1/-1',textAlign:'center',padding:'60px 0',color:'var(--text2)'}}><div style={{fontSize:'2.5rem',marginBottom:12}}>🗺️</div>Belum ada route</div>}
+        {!loading&&!routes.length&&<div style={{gridColumn:'1/-1',textAlign:'center',padding:'70px 0',color:'var(--text2)'}}><div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}>🗺️</div>Belum ada route</div>}
       </div>
 
       {/* Upload */}
@@ -761,14 +807,17 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
 function LeaderboardPage() {
   const [lb, setLb] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  useEffect(()=>{api('/leaderboard').then(d=>{if(d.leaderboard)setLb(d.leaderboard);setLoading(false)})},[])
+  useEffect(()=>{api('/leaderboard').then(d=>{if(d.leaderboard)setLb(d.leaderboard);setLoading(false)})},[] as any)
   const medals=['🥇','🥈','🥉'], colors=['var(--gold)','#c0c0c0','#cd7f32']
   return (
     <>
-      <div style={{marginBottom:24}}><div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.8rem',fontWeight:700}}>🏆 Leaderboard</div><div style={{color:'var(--text2)',fontSize:'.88rem',marginTop:4}}>Top executor AWR Script</div></div>
+      <div style={{marginBottom:28}}>
+        <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>🏆 Leaderboard</div>
+        <div style={{color:'var(--text3)',fontSize:'.85rem',marginTop:4}}>Top executor AWR Script</div>
+      </div>
       <div style={{maxWidth:640}}>
-        {loading?[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:64,marginBottom:10}}/>):lb.map((u,i)=>(
-          <div key={i} className="lb-row" style={{animationDelay:`${i*.05}s`,background:i<3?`linear-gradient(135deg,rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.05),transparent)`:'var(--card)',borderColor:i<3?`rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.2)`:'var(--border)'}}>
+        {loading?[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:68,marginBottom:10}}/>):lb.map((u,i)=>(
+          <div key={i} className="lb-row" style={{animationDelay:`${i*.05}s`,background:i<3?`linear-gradient(135deg,rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.06),transparent)`:'var(--card)',borderColor:i<3?`rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.2)`:'var(--border)'}}>
             <div className="lb-rank" style={{color:i<3?colors[i]:'var(--text2)'}}>{i<3?medals[i]:`#${u.rank}`}</div>
             <div style={{flex:1}}>
               <div className="lb-name" style={{color:i<3?colors[i]:'var(--text)'}}>{u.username}</div>
@@ -780,7 +829,7 @@ function LeaderboardPage() {
             </div>
           </div>
         ))}
-        {!loading&&!lb.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:'60px 0'}}><div style={{fontSize:'2.5rem',marginBottom:12}}>🏆</div>Belum ada data</div>}
+        {!loading&&!lb.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:'70px 0'}}><div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}>🏆</div>Belum ada data</div>}
       </div>
     </>
   )
@@ -795,7 +844,7 @@ export default function App() {
   const [page, setPage] = useState('dash')
 
   useEffect(()=>{
-    const t = setTimeout(()=>setReady(true), 2200)
+    const t = setTimeout(()=>setReady(true), 2400)
     const saved = localStorage.getItem('awr_token')||sessionStorage.getItem('awr_token')
     if(saved) {
       api('/user/profile','GET',undefined,saved).then(d=>{
@@ -814,6 +863,7 @@ export default function App() {
       <Head>
         <title>AWR Key System — by Sanzxmzz</title>
         <meta name="viewport" content="width=device-width,initial-scale=1"/>
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Rajdhani:wght@300;500;600;700&family=Outfit:wght@300;400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/>
       </Head>
       <LoadingScreen done={ready}/>
       <ToastRoot/>
@@ -824,19 +874,19 @@ export default function App() {
       {!token
         ?<AuthPage onAuth={onAuth}/>
         :<div style={{position:'relative',zIndex:1,minHeight:'100vh'}}>
-          <nav className="navbar">
+          <nav className="navbar" style={{position:'sticky'}}>
             <div className="navbar-brand" onClick={()=>setPage('dash')}>⚡ AWR</div>
             <div className="navbar-nav">
-              {[['dash','🏠'],['routes','🗺️'],['lb','🏆']].map(([v,l])=>(
-                <button key={v} className={`nav-btn ${page===v?'active':''}`} onClick={()=>setPage(v)}>{l} {v==='dash'?'Dashboard':v==='routes'?'Routes':'Leaderboard'}</button>
+              {[['dash','🏠','Dashboard'],['routes','🗺️','Routes'],['lb','🏆','Leaderboard']].map(([v,icon,lbl])=>(
+                <button key={v} className={`nav-btn ${page===v?'active':''}`} onClick={()=>setPage(v)}>{icon} {lbl}</button>
               ))}
               {(user!.role==='reseller'||user!.role==='developer')&&(
                 <button className="nav-btn reseller" onClick={()=>router.push('/reseller')}>🏪 Reseller</button>
               )}
               {user!.role==='developer'&&(
-                <button className="nav-btn dev" onClick={()=>router.push('/developer')}>👑 Developer</button>
+                <button className="nav-btn dev" onClick={()=>router.push('/developer')}>👑 Dev</button>
               )}
-              <button className="nav-btn danger" onClick={logout}>🚪</button>
+              <button className="nav-btn danger" onClick={logout} title="Logout">🚪</button>
             </div>
           </nav>
           <div className="content" key={page}>
