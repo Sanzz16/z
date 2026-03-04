@@ -1,5 +1,5 @@
 import Head from 'next/head'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 
 // ─── Types ───────────────────────────────────────────────────
@@ -354,8 +354,37 @@ function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
         <div className="form-group"><label className="form-label">Username</label><input className="form-input" value={ef.username} onChange={e=>setEf(f=>({...f,username:e.target.value}))}/></div>
         <div className="form-group"><label className="form-label">Roblox Username</label><input className="form-input" placeholder="Username Roblox..." value={ef.roblox_username} onChange={e=>setEf(f=>({...f,roblox_username:e.target.value}))}/></div>
         <div className="divider"/>
-        <div className="form-group"><label className="form-label">URL Avatar (foto profil)</label><input className="form-input" placeholder="https://...jpg" value={ef.avatar_url} onChange={e=>setEf(f=>({...f,avatar_url:e.target.value}))}/></div>
-        <div className="form-group"><label className="form-label">URL Background</label><input className="form-input" placeholder="https://..." value={ef.background_url} onChange={e=>setEf(f=>({...f,background_url:e.target.value}))}/></div>
+        {/* Avatar: URL atau Upload File */}
+        <div className="form-group">
+          <label className="form-label">Foto Profil</label>
+          <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+            <label style={{display:'inline-flex',alignItems:'center',gap:6,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:'.8rem',color:'var(--text2)'}}>
+              📁 Upload Foto <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
+                const f=e.target.files?.[0]; if(!f) return
+                if(f.size>2*1024*1024){toast('Foto max 2MB','error');return}
+                const r=new FileReader(); r.onload=ev=>setEf(p=>({...p,avatar_file_url:ev.target?.result as string||'',avatar_url:''})); r.readAsDataURL(f)
+              }}/>
+            </label>
+            <span style={{color:'var(--text3)',fontSize:'.8rem',alignSelf:'center'}}>atau</span>
+          </div>
+          <input className="form-input" placeholder="URL Avatar https://...jpg" value={ef.avatar_url} onChange={e=>setEf(f=>({...f,avatar_url:e.target.value,avatar_file_url:''}))}/>
+        </div>
+        {/* Background: URL atau Upload */}
+        <div className="form-group">
+          <label className="form-label">Background Layar</label>
+          <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+            <label style={{display:'inline-flex',alignItems:'center',gap:6,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:'.8rem',color:'var(--text2)'}}>
+              📁 Upload Foto/Video <input type="file" accept="image/*,video/*" style={{display:'none'}} onChange={e=>{
+                const f=e.target.files?.[0]; if(!f) return
+                if(f.size>10*1024*1024){toast('File max 10MB','error');return}
+                const isVid=f.type.startsWith('video')
+                const r=new FileReader(); r.onload=ev=>setEf(p=>({...p,background_url:ev.target?.result as string||'',background_type:isVid?'video':'image'})); r.readAsDataURL(f)
+              }}/>
+            </label>
+            <span style={{color:'var(--text3)',fontSize:'.8rem',alignSelf:'center'}}>atau URL:</span>
+          </div>
+          <input className="form-input" placeholder="https://... (foto atau video)" value={ef.background_url?.startsWith('data:')?'[File uploaded]':ef.background_url} onChange={e=>{if(!e.target.value.startsWith('data:'))setEf(f=>({...f,background_url:e.target.value}))}}/>
+        </div>
         <div className="form-group"><label className="form-label">Tipe Background</label>
           <select className="form-select" value={ef.background_type} onChange={e=>setEf(f=>({...f,background_type:e.target.value}))}>
             <option value="image">🖼️ Gambar</option><option value="video">🎥 Video</option>
@@ -375,6 +404,181 @@ function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
           <button className="btn btn-ghost" onClick={()=>setEditOpen(false)}>Batal</button>
         </div>
       </Modal>
+    </>
+  )
+}
+
+// ─── Feedback Page (embedded) ────────────────────────────────
+function FeedbackPage() {
+  const [feedbacks, setFeedbacks] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [filter, setFilter] = React.useState('Semua')
+  const [search, setSearch] = React.useState('')
+  const [stats, setStats] = React.useState({total:0,bugs:0,saran:0,avgRating:0})
+  const [now, setNow] = React.useState(new Date())
+
+  React.useEffect(()=>{
+    const iv = setInterval(()=>setNow(new Date()),1000)
+    return ()=>clearInterval(iv)
+  },[])
+
+  const loadFeed = () => {
+    api('/feedback').then(d=>{
+      const fb = d.feedbacks||[]
+      setFeedbacks(fb); setLoading(false)
+      const bugs=fb.filter((x:any)=>x.type==='Report Bug').length
+      const saran=fb.filter((x:any)=>x.type==='Saran').length
+      const avgR=fb.length?(fb.reduce((s:number,x:any)=>s+x.rating,0)/fb.length):0
+      setStats({total:fb.length,bugs,saran,avgRating:Math.round(avgR*10)/10})
+    })
+  }
+  React.useEffect(()=>{
+    loadFeed()
+    const iv=setInterval(loadFeed,30000)
+    return ()=>clearInterval(iv)
+  },[])
+
+  const pad=(n:number)=>String(n).padStart(2,'0')
+  const liveTime=`${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} · ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`
+
+  function fmtDate(iso:string){
+    const d=new Date(iso)
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  }
+
+  const FILTERS=['Semua','Saran','Report Bug','Feedback']
+  const typeColor:Record<string,{bg:string;color:string;icon:string}>={
+    'Report Bug':{bg:'rgba(239,68,68,.15)',color:'#f87171',icon:'🐛'},
+    'Saran':{bg:'rgba(59,130,246,.15)',color:'#60a5fa',icon:'💡'},
+    'Feedback':{bg:'rgba(168,85,247,.15)',color:'#c084fc',icon:'💬'},
+  }
+
+  const filtered=feedbacks.filter(f=>{
+    if(filter!=='Semua'&&f.type!==filter)return false
+    if(search&&!f.message?.toLowerCase().includes(search.toLowerCase())&&
+       !f.roblox_name_masked?.toLowerCase().includes(search.toLowerCase())&&
+       !f.website_username?.toLowerCase().includes(search.toLowerCase()))return false
+    return true
+  })
+
+  return (
+    <>
+      {/* Header */}
+      <div style={{marginBottom:24}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:12}}>
+          <div>
+            <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.9rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>
+              Feedback Board
+            </div>
+            <div style={{color:'var(--text3)',fontSize:'.85rem',marginTop:2,display:'flex',alignItems:'center',gap:8}}>
+              Feedback & report dari pengguna AWR Script — public
+              <a href="/feedback" target="_blank" style={{color:'var(--accent)',fontSize:'.75rem',border:'1px solid rgba(0,140,255,.2)',borderRadius:6,padding:'2px 8px',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}>
+                ↗ Buka di tab baru
+              </a>
+            </div>
+          </div>
+          {/* Real-time clock EMAS */}
+          <div style={{background:'rgba(245,197,66,.08)',border:'1px solid rgba(245,197,66,.25)',borderRadius:10,padding:'8px 16px',textAlign:'center'}}>
+            <div style={{fontSize:'.6rem',color:'rgba(245,197,66,.5)',letterSpacing:2,marginBottom:2}}>WAKTU SEKARANG</div>
+            <div style={{fontWeight:900,color:'#f5c542',fontFamily:'Orbitron,sans-serif',fontSize:'.82rem',letterSpacing:1}}>{liveTime}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:20}}>
+        {[
+          {val:stats.total,lbl:'Total',icon:'📋',c:'var(--accent)'},
+          {val:stats.bugs,lbl:'Bug Report',icon:'🐛',c:'#f87171'},
+          {val:stats.saran,lbl:'Saran',icon:'💡',c:'#60a5fa'},
+          {val:stats.avgRating>0?`${stats.avgRating}★`:'—',lbl:'Avg Rating',icon:'⭐',c:'#f5c542'},
+        ].map((s,i)=>(
+          <div key={i} className="stat-box" style={{animationDelay:`${i*.06}s`}}>
+            <div className="stat-val" style={{color:s.c,fontSize:'1.3rem'}}>{loading?'—':s.val}</div>
+            <div className="stat-lbl">{s.icon} {s.lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Filter + Search */}
+      <div style={{display:'flex',gap:8,marginBottom:18,flexWrap:'wrap',alignItems:'center'}}>
+        {FILTERS.map(f=>(
+          <button key={f} onClick={()=>setFilter(f)}
+            style={{background:filter===f?'linear-gradient(135deg,var(--accent-dark),var(--accent))':'var(--card2)',
+              border:`1px solid ${filter===f?'transparent':'var(--border)'}`,borderRadius:8,color:filter===f?'#fff':'var(--text2)',
+              padding:'6px 12px',cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.82rem',transition:'all .2s'}}>
+            {f}{f!=='Semua'&&!loading?` (${feedbacks.filter(x=>x.type===f).length})`:''}
+          </button>
+        ))}
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Cari..."
+          className="form-input" style={{flex:1,minWidth:160,padding:'6px 12px',fontSize:'.82rem'}}/>
+        <button className="btn btn-ghost btn-sm" onClick={loadFeed} style={{padding:'6px 12px',fontSize:'.8rem'}}>🔄</button>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        [1,2,3].map(i=><div key={i} className="skeleton" style={{height:110,marginBottom:10}}/>)
+      ) : filtered.length===0 ? (
+        <div style={{textAlign:'center',padding:'70px 0',color:'var(--text2)'}}>
+          <div style={{fontSize:'2.8rem',marginBottom:12,opacity:.2}}>💬</div>
+          <div>Belum ada feedback</div>
+        </div>
+      ) : (
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          {filtered.map((fb,i)=>{
+            const tc=typeColor[fb.type]||typeColor['Feedback']
+            return (
+              <div key={fb.id} className="card" style={{animationDelay:`${i*.04}s`,animation:'fadeUp .3s ease both',padding:'16px 18px'}}>
+                {/* Top row */}
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8,marginBottom:10}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+                    {/* Type badge */}
+                    <span style={{background:tc.bg,color:tc.color,border:`1px solid ${tc.color}44`,borderRadius:99,padding:'2px 10px',fontSize:'.7rem',fontWeight:700,fontFamily:'Rajdhani,sans-serif',letterSpacing:.5}}>
+                      {tc.icon} {fb.type}
+                    </span>
+                    {/* Stars */}
+                    <span style={{fontSize:'.95rem',letterSpacing:2}}>
+                      {Array.from({length:5},(_,si)=>(
+                        <span key={si} style={{color:si<fb.rating?'#f5c542':'rgba(255,255,255,.12)'}}>★</span>
+                      ))}
+                    </span>
+                  </div>
+                  {/* Tanggal BOLD EMAS */}
+                  <span style={{fontWeight:900,color:'#f5c542',fontFamily:'Orbitron,sans-serif',fontSize:'.68rem',letterSpacing:.5,whiteSpace:'nowrap'}}>
+                    📅 {fmtDate(fb.created_at)}
+                  </span>
+                </div>
+
+                {/* Pesan */}
+                <p style={{color:'var(--text)',fontSize:'.88rem',lineHeight:1.65,margin:'0 0 12px',wordBreak:'break-word'}}>
+                  {fb.message}
+                </p>
+
+                {/* Footer: nama */}
+                <div style={{display:'flex',gap:14,flexWrap:'wrap',borderTop:'1px solid var(--border)',paddingTop:10}}>
+                  {fb.website_username&&(
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
+                      <span style={{fontSize:'.68rem',color:'var(--text3)'}}>Akun Website:</span>
+                      <span style={{fontSize:'.78rem',fontWeight:700,color:'var(--accent)',fontFamily:'Rajdhani,sans-serif'}}>👤 {fb.website_username}</span>
+                    </div>
+                  )}
+                  {fb.roblox_name_masked&&(
+                    <div style={{display:'flex',alignItems:'center',gap:5}}>
+                      <span style={{fontSize:'.68rem',color:'var(--text3)'}}>Roblox:</span>
+                      <span style={{fontSize:'.78rem',fontWeight:700,color:'var(--text2)',fontFamily:'Rajdhani,sans-serif',letterSpacing:1}}>🎮 {fb.roblox_name_masked}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {!loading&&feedbacks.length>0&&(
+        <div style={{textAlign:'center',marginTop:16,color:'var(--text3)',fontSize:'.75rem'}}>
+          {filtered.length} dari {feedbacks.length} feedback · auto-refresh 30 detik
+        </div>
+      )}
     </>
   )
 }
@@ -408,11 +612,21 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
   }
   function onFileChange(e:React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]; if(!f) return
-    const reader = new FileReader(); reader.onload = ev=>setForm(f=>({...f,data:ev.target?.result as string||''})); reader.readAsText(f)
+    if(f.size > 5*1024*1024){toast('File terlalu besar (max 5MB)','error');return}
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const txt = ev.target?.result as string || ''
+      // Validasi JSON sebelum set state
+      try { JSON.parse(txt) } catch { toast('Format JSON tidak valid','error'); return }
+      setForm(prev=>({...prev,data:txt}))
+      toast('File berhasil dibaca!','success')
+    }
+    reader.readAsText(f)
   }
   async function upload(e:React.FormEvent) {
     e.preventDefault(); if(!token){toast('Login dulu!','error');return}
-    let parsed; try{parsed=JSON.parse(form.data)}catch{toast('Format JSON tidak valid','error');return}
+    if(!form.data.trim()){toast('Data JSON wajib diisi','error');return}
+    let parsed; try{parsed=JSON.parse(form.data)}catch{toast('Format JSON tidak valid — pastikan format benar','error');return}
     const d = await api('/routes','POST',{...form,data:parsed},token)
     if(d.error){toast(d.error,'error');return}
     toast('Route berhasil diupload!','success'); setUploadOpen(false)
@@ -430,7 +644,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
       </div>
       <div className="route-grid">
         {loading?[1,2,3,4,5,6].map(i=><div key={i} className="skeleton" style={{height:120}}/>):routes.map((r,i)=>(
-          <div key={r.id} className="route-card" onClick={()=>openRoute(r)} style={{animationDelay:`${i*.04}s`,animation:'fadeUp .3s ease both'}}>
+          <div key={r.id} className="route-card" onClick={()=>openRoute(r)} style={{animationDelay:`${i*.04}s`,animation:'fadeUp .3s ease both',cursor:'pointer',userSelect:'none'}}>
             {r.thumbnail_url&&<img className="route-thumb" src={r.thumbnail_url} alt={r.name}/>}
             <div className="route-body">
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
@@ -463,7 +677,13 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
             <label style={{display:'inline-flex',alignItems:'center',gap:8,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 14px',cursor:'pointer',fontSize:'.82rem',marginBottom:8}}>
               📁 Upload File <input type="file" accept=".json,.txt" style={{display:'none'}} onChange={onFileChange}/>
             </label>
-            <textarea className="form-textarea" placeholder='[{"x":0,"y":5,"z":0}]' value={form.data} onChange={e=>setForm(f=>({...f,data:e.target.value}))} required style={{fontFamily:'monospace',fontSize:'.78rem'}}/>
+            <textarea className="form-textarea" placeholder='[{"x":0,"y":5,"z":0}]' value={form.data}
+              onChange={e=>{
+                const v=e.target.value
+                setForm(f=>({...f,data:v}))
+              }}
+              required style={{fontFamily:'monospace',fontSize:'.78rem',minHeight:120}}/>
+            <div style={{fontSize:'.7rem',color:'var(--text3)',marginTop:4}}>💡 Paste JSON disini atau upload file di atas. Validasi dilakukan saat submit.</div>
           </div>
           <div className="form-group">
             <label className="form-label">Visibilitas</label>
@@ -508,6 +728,7 @@ function RoutesPage({token,user}:{token:string|null;user:User|null}) {
 function LeaderboardPage() {
   const [lb, setLb] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [profileModal, setProfileModal] = useState<any>(null)
   useEffect(()=>{api('/leaderboard').then(d=>{if(d.leaderboard)setLb(d.leaderboard);setLoading(false)})},[] as any)
   const medals=['🥇','🥈','🥉'], colors=['var(--gold)','#c0c0c0','#cd7f32']
   return (
@@ -518,8 +739,10 @@ function LeaderboardPage() {
       </div>
       <div style={{maxWidth:640}}>
         {loading?[1,2,3,4,5].map(i=><div key={i} className="skeleton" style={{height:68,marginBottom:10}}/>):lb.map((u,i)=>(
-          <div key={i} className="lb-row" style={{animationDelay:`${i*.05}s`,background:i<3?`linear-gradient(135deg,rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.06),transparent)`:'var(--card)',borderColor:i<3?`rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.2)`:'var(--border)'}}>
+          <div key={i} className="lb-row" onClick={()=>setProfileModal(u)} style={{animationDelay:`${i*.05}s`,cursor:'pointer',background:i<3?`linear-gradient(135deg,rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.06),transparent)`:'var(--card)',borderColor:i<3?`rgba(${i===0?'251,191,36':i===1?'192,192,192':'205,127,50'},.2)`:'var(--border)'}}>
             <div className="lb-rank" style={{color:i<3?colors[i]:'var(--text2)'}}>{i<3?medals[i]:`#${u.rank}`}</div>
+            {/* Avatar */}
+            {u.avatar ? <img src={u.avatar} alt="" style={{width:36,height:36,borderRadius:'50%',objectFit:'cover',border:`2px solid ${i<3?colors[i]:'rgba(0,140,255,.25)'}`,flexShrink:0}}/> : <div style={{width:36,height:36,borderRadius:'50%',background:'rgba(0,140,255,.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'1.1rem',flexShrink:0}}>👤</div>}
             <div style={{flex:1}}>
               <div className="lb-name" style={{color:i<3?colors[i]:'var(--text)'}}>{u.username}</div>
               {u.roblox_username&&<div style={{fontSize:'.75rem',color:'var(--text2)',marginTop:2}}>Roblox: {u.roblox_username}</div>}
@@ -532,6 +755,19 @@ function LeaderboardPage() {
         ))}
         {!loading&&!lb.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:'70px 0'}}><div style={{marginBottom:14,animation:'float 3s ease-in-out infinite',opacity:.2,display:'flex',justifyContent:'center'}}><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21H5a2 2 0 01-2-2v-5"/><path d="M16 21h3a2 2 0 002-2v-9"/><path d="M12 21V11"/><path d="M3 10l9-7 9 7"/></svg></div>Belum ada data</div>}
       </div>
+      {/* Profile Modal */}
+      <Modal open={!!profileModal} onClose={()=>setProfileModal(null)} title="👤 Profil Player">
+        {profileModal&&<div style={{textAlign:'center',padding:'8px 0'}}>
+          {profileModal.avatar?<img src={profileModal.avatar} alt="" style={{width:72,height:72,borderRadius:'50%',objectFit:'cover',border:'3px solid rgba(0,140,255,.4)',marginBottom:12}}/>:<div style={{width:72,height:72,borderRadius:'50%',background:'rgba(0,140,255,.1)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'2rem',margin:'0 auto 12px'}}>👤</div>}
+          <div style={{fontSize:'1.2rem',fontWeight:700,color:'var(--text)',marginBottom:4}}>{profileModal.username}</div>
+          {profileModal.roblox_username&&<div style={{color:'var(--text2)',fontSize:'.85rem',marginBottom:12}}>Roblox: {profileModal.roblox_username}</div>}
+          <div style={{background:'var(--card2)',borderRadius:10,padding:'12px 20px',display:'inline-block'}}>
+            <div style={{fontSize:'1.6rem',fontWeight:800,color:'var(--gold)'}}>{profileModal.total_executions?.toLocaleString()}</div>
+            <div style={{fontSize:'.75rem',color:'var(--text3)'}}>Total Executions</div>
+          </div>
+          {!profileModal.leaderboard_public&&<div style={{marginTop:12,color:'var(--text3)',fontSize:'.8rem',background:'rgba(255,255,255,.04)',borderRadius:8,padding:'6px 12px'}}>🔒 Profil ini semi-private</div>}
+        </div>}
+      </Modal>
     </>
   )
 }
@@ -550,8 +786,11 @@ export default function App() {
     if(saved) {
       api('/user/profile','GET',undefined,saved).then(d=>{
         if(d.user){setToken(saved);setUser(d.user)}
-        else{localStorage.removeItem('awr_token');sessionStorage.removeItem('awr_token')}
+        else{localStorage.removeItem('awr_token');sessionStorage.removeItem('awr_token');router.push('/home')}
       })
+    } else {
+      // Tidak ada token, redirect ke halaman info
+      router.push('/home')
     }
     return ()=>clearTimeout(t)
   },[])
@@ -585,6 +824,7 @@ export default function App() {
             {page==='dash'&&<UserDash token={token} user={user!} onLogout={logout}/>}
             {page==='routes'&&<RoutesPage token={token} user={user}/>}
             {page==='lb'&&<LeaderboardPage/>}
+            {page==='feedback'&&<FeedbackPage/>}
           </div>
 
           {/* Bottom Tab Bar */}
@@ -603,6 +843,11 @@ export default function App() {
             <button className={`btab t-lb ${page==='lb'?'active':''}`} onClick={()=>setPage('lb')}>
               <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M8 21H5a2 2 0 01-2-2v-5"/><path d="M16 21h3a2 2 0 002-2v-9"/><path d="M12 21V11"/><path d="M3 10l9-7 9 7"/></svg></div>
               <span className="btab-lbl">Leaderboard</span>
+            </button>
+            {/* Feedback */}
+            <button className={`btab t-feedback ${page==='feedback'?'active':''}`} onClick={()=>setPage('feedback')}>
+              <div className="btab-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+              <span className="btab-lbl">Feedback</span>
             </button>
             {/* Reseller */}
             {(user!.role==='reseller'||user!.role==='developer')&&(

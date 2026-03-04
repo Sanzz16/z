@@ -49,6 +49,63 @@ function Modal({open,onClose,title,children,wide=false}:{open:boolean;onClose:()
   )
 }
 
+// ─── Particles ───────────────────────────────────────────────
+function Particles() {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(()=>{
+    const c=ref.current; if(!c) return
+    const ctx=c.getContext('2d')!
+    let W=c.width=window.innerWidth,H=c.height=window.innerHeight
+    const pts=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.2,vy:(Math.random()-.5)*.2,r:Math.random()*1.8+.4,a:Math.random()*.3+.1}))
+    const resize=()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight}
+    window.addEventListener('resize',resize)
+    let raf:number
+    function draw(){
+      ctx.clearRect(0,0,W,H)
+      pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>W)p.vx*=-1;if(p.y<0||p.y>H)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(0,170,255,${p.a})`;ctx.fill()})
+      for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<110){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(0,100,255,${.12*(1-d/110)})`;ctx.stroke()}}
+      raf=requestAnimationFrame(draw)
+    }
+    draw()
+    return ()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize)}
+  },[])
+  return <canvas ref={ref} style={{position:'fixed',top:0,left:0,width:'100%',height:'100%',zIndex:0,pointerEvents:'none'}}/>
+}
+
+// ─── Ban Dialog (bukan toast!) ────────────────────────────────
+function BanDialog({open,user,onClose,onConfirm}:{open:boolean;user:any;onClose:()=>void;onConfirm:(reason:string)=>void}) {
+  const [reason, setReason] = useState('')
+  if(!open||!user) return null
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:600,background:'rgba(0,0,0,.9)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(10px)'}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div style={{background:'linear-gradient(160deg,#110a0a,#0a0a10)',border:'2px solid rgba(220,50,50,.35)',borderRadius:20,padding:28,width:420,maxWidth:'95vw',boxShadow:'0 0 60px rgba(220,50,50,.15)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:800,fontSize:'1.2rem',color:'#f87171'}}>🚫 Ban User</div>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'#8a8a9a',borderRadius:8,padding:'4px 10px',cursor:'pointer'}}>✕</button>
+        </div>
+        <div style={{background:'rgba(220,50,50,.08)',border:'1px solid rgba(220,50,50,.2)',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
+          <div style={{color:'#f87171',fontWeight:700,marginBottom:4}}>Username: <span style={{color:'#fff'}}>{user?.username}</span></div>
+          <div style={{color:'#8a8a9a',fontSize:'.82rem'}}>User ini akan dibanned dan semua key-nya dinonaktifkan.</div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{color:'#8a8a9a',fontSize:'.82rem',display:'block',marginBottom:6}}>Alasan ban (opsional):</label>
+          <input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Melanggar aturan..."
+            style={{width:'100%',background:'rgba(220,50,50,.06)',border:'1px solid rgba(220,50,50,.2)',borderRadius:10,color:'#fff',padding:'10px 14px',outline:'none',boxSizing:'border-box',fontFamily:'Outfit,sans-serif'}}/>
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={onClose} style={{flex:1,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,color:'#8a8a9a',padding:'11px',cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'1rem'}}>
+            Cancel
+          </button>
+          <button onClick={()=>{onConfirm(reason);setReason('')}} style={{flex:1,background:'linear-gradient(135deg,#7f1d1d,#dc2626)',border:'none',borderRadius:10,color:'#fff',padding:'11px',cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'1rem'}}>
+            🚫 Ban Sekarang
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 function Bdg({c,t}:{c:string,t:string}){
   const MAP:any={green:'bx-g',red:'bx-r',blue:'bx-b',yellow:'bx-y',purple:'bx-p',gray:'bx-gray'}
   return <span className={`bx ${MAP[c]||'bx-gray'}`}>{t}</span>
@@ -183,7 +240,7 @@ function UserSelectDropdown({users,value,onChange,placeholder='— Pilih User �
   )
 }
 
-type Tab='send-key'|'users'|'keys'|'broadcast'|'global-key'|'resellers'|'getkey-settings'
+type Tab='send-key'|'users'|'keys'|'broadcast'|'global-key'|'resellers'|'getkey-settings'|'music'|'support'
 
 const DV_CSS=`
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&family=Rajdhani:wght@500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
@@ -309,7 +366,13 @@ export default function DevPage(){
   const [editUser,setEditUser]=useState<any>(null)
   const [editKey,setEditKey]=useState<any>(null)
   const [banModal,setBanModal]=useState<any>(null)
+  const [banDialogOpen,setBanDialogOpen]=useState(false)
   const [banReason,setBanReason]=useState('')
+  // Music & Support settings
+  const [music,setMusic]=useState({url:'',type:'url',is_active:false,volume:50,title:'AWR Music'})
+  const [support,setSupport]=useState({whatsapp_url:'',telegram_url:'',discord_url:'',custom_label:'Hubungi Support',is_active:true})
+  const [musicSaving,setMusicSaving]=useState(false)
+  const [supportSaving,setSupportSaving]=useState(false)
   const [addStep,setAddStep]=useState({name:'',url:'',duration_seconds:'30'})
   const [editStep,setEditStep]=useState<any>(null)
 
@@ -321,9 +384,15 @@ export default function DevPage(){
     else setBooting(false)
   },[])
 
-  useEffect(()=>{if(token){loadUsers();loadKeys();loadGkSteps()}},[token])
+  useEffect(()=>{if(token){loadUsers();loadKeys();loadGkSteps();loadMusicSupport()}},[token])
 
   const loadUsers=()=>api('/developer/users','GET',undefined,token).then(d=>{if(d.users)setUsers(d.users)})
+  const loadMusicSupport=()=>{
+    api('/developer/music','GET').then(d=>{if(d.music)setMusic({url:d.music.url||'',type:d.music.type||'url',is_active:!!d.music.is_active,volume:d.music.volume||50,title:d.music.title||'AWR Music'})})
+    api('/developer/support','GET').then(d=>{if(d.support)setSupport({whatsapp_url:d.support.whatsapp_url||'',telegram_url:d.support.telegram_url||'',discord_url:d.support.discord_url||'',custom_label:d.support.custom_label||'Hubungi Support',is_active:!!d.support.is_active})})
+  }
+  async function saveMusic(){setMusicSaving(true);const d=await api('/developer/music','PATCH',music,token);setMusicSaving(false);if(d.error){toast(d.error,'error');return};toast('Pengaturan musik disimpan!','success')}
+  async function saveSupport(){setSupportSaving(true);const d=await api('/developer/support','PATCH',support,token);setSupportSaving(false);if(d.error){toast(d.error,'error');return};toast('Pengaturan support disimpan!','success')}
   const loadKeys=()=>api('/developer/keys','GET',undefined,token).then(d=>{if(d.keys)setKeys(d.keys)})
   const loadGkSteps=()=>api('/developer/getkey-settings','GET',undefined,token).then(d=>{if(d.steps)setGkSteps(d.steps)})
 
@@ -375,6 +444,8 @@ export default function DevPage(){
     ['global-key',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>,'Global'],
     ['resellers',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>,'Reseller'],
     ['getkey-settings',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,'GetKey'],
+    ['music',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>,'Musik'],
+    ['support',<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>,'Support'],
   ]
 
   const CardSection=({title,children,extra}:{title:string,children:React.ReactNode,extra?:React.ReactNode})=>(
@@ -552,6 +623,43 @@ export default function DevPage(){
           <button type="submit" className="dv-btn-primary" style={{width:'auto',padding:'10px 24px'}}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Step</button>
         </form>
       </CardSection>}
+
+      {tab==='music'&&<div style={{maxWidth:520}}><CardSection title="MUSIK OTOMATIS — Semua Halaman">
+        <div style={{fontSize:'.82rem',color:'#444455',marginBottom:18,marginTop:-10}}>Atur musik yang auto-play di semua halaman. User tidak perlu reload untuk mengubah lagu.</div>
+        <div className="dv-fg"><label className="dv-fl">Judul Musik</label><input className="dv-fi" placeholder="Nama lagu..." value={music.title} onChange={e=>setMusic(m=>({...m,title:e.target.value}))}/></div>
+        <div className="dv-fg"><label className="dv-fl">URL Musik (YouTube embed / MP3 / SoundCloud)</label><input className="dv-fi" placeholder="https://... (gunakan MP3 direct link)" value={music.url} onChange={e=>setMusic(m=>({...m,url:e.target.value}))}/></div>
+        <div className="dv-fg"><label className="dv-fl">Volume Default ({music.volume}%)</label><input type="range" min={0} max={100} value={music.volume} onChange={e=>setMusic(m=>({...m,volume:+e.target.value}))} style={{width:'100%',accentColor:'#a855f7',marginTop:6}}/></div>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+          <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',color:'#c77dff',fontSize:'.9rem'}}>
+            <input type="checkbox" checked={music.is_active} onChange={e=>setMusic(m=>({...m,is_active:e.target.checked}))} style={{accentColor:'#a855f7',width:16,height:16}}/>
+            Aktifkan Auto-Play Musik
+          </label>
+        </div>
+        <button onClick={saveMusic} disabled={musicSaving} className="dv-btn-primary" style={{width:'100%'}}>
+          {musicSaving?'Menyimpan...':'💾 Simpan Pengaturan Musik'}
+        </button>
+        <div style={{marginTop:14,fontSize:'.75rem',color:'#333344',lineHeight:1.6}}>
+          💡 Tips: Gunakan link MP3 direct (contoh: dari pCloud, Dropbox, atau hosting lain). YouTube tidak support direct embed audio.
+        </div>
+      </CardSection></div>}
+
+      {tab==='support'&&<div style={{maxWidth:520}}><CardSection title="PENGATURAN SUPPORT — Kontak untuk User">
+        <div style={{fontSize:'.82rem',color:'#444455',marginBottom:18,marginTop:-10}}>Atur kontak support yang muncul di halaman user.</div>
+        <div className="dv-fg"><label className="dv-fl">Label Tombol Support</label><input className="dv-fi" placeholder="Hubungi Support" value={support.custom_label} onChange={e=>setSupport(s=>({...s,custom_label:e.target.value}))}/></div>
+        <div className="dv-fg"><label className="dv-fl">WhatsApp URL (kosong = hidden)</label><input className="dv-fi" placeholder="https://wa.me/628123..." value={support.whatsapp_url} onChange={e=>setSupport(s=>({...s,whatsapp_url:e.target.value}))}/></div>
+        <div className="dv-fg"><label className="dv-fl">Telegram URL (kosong = hidden)</label><input className="dv-fi" placeholder="https://t.me/..." value={support.telegram_url} onChange={e=>setSupport(s=>({...s,telegram_url:e.target.value}))}/></div>
+        <div className="dv-fg"><label className="dv-fl">Discord URL (kosong = hidden)</label><input className="dv-fi" placeholder="https://discord.gg/..." value={support.discord_url} onChange={e=>setSupport(s=>({...s,discord_url:e.target.value}))}/></div>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+          <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',color:'#c77dff',fontSize:'.9rem'}}>
+            <input type="checkbox" checked={support.is_active} onChange={e=>setSupport(s=>({...s,is_active:e.target.checked}))} style={{accentColor:'#a855f7',width:16,height:16}}/>
+            Tampilkan Tombol Support di halaman User
+          </label>
+        </div>
+        <button onClick={saveSupport} disabled={supportSaving} className="dv-btn-primary" style={{width:'100%'}}>
+          {supportSaving?'Menyimpan...':'💾 Simpan Pengaturan Support'}
+        </button>
+      </CardSection></div>}
+
     </div>
 
     {/* ── MODALS ── */}
@@ -609,13 +717,20 @@ export default function DevPage(){
       </>}
     </Modal>
 
-    <Modal open={!!banModal} onClose={()=>setBanModal(null)} title={banModal?.is_banned?'Unban User':'Ban User'}>
-      {banModal&&<>
-        <p style={{fontSize:'.85rem',color:'#8a8a9a',marginBottom:16}}>{banModal.is_banned?`Unban ${banModal.username}?`:`Ban ${banModal.username}? Semua key akan dimatikan.`}</p>
-        {!banModal.is_banned&&<div style={{marginBottom:16}}><label className="dv-fl">Alasan Ban</label><input className="dv-fi" placeholder="Alasan ban..." value={banReason} onChange={e=>setBanReason(e.target.value)}/></div>}
+    {/* Ban Dialog — bukan toast! */}
+    <BanDialog
+      open={!!banModal&&!banModal.is_banned}
+      user={banModal}
+      onClose={()=>setBanModal(null)}
+      onConfirm={(reason)=>{setBanReason(reason);doBan('ban')}}
+    />
+    {/* Unban pakai modal biasa */}
+    <Modal open={!!banModal&&!!banModal.is_banned} onClose={()=>setBanModal(null)} title="Unban User">
+      {banModal&&banModal.is_banned&&<>
+        <p style={{fontSize:'.85rem',color:'#8a8a9a',marginBottom:16}}>Unban <strong style={{color:'#fff'}}>{banModal.username}</strong>?</p>
         <div style={{display:'flex',gap:10}}>
-          {banModal.is_banned?<button onClick={()=>doBan('unban')} className="dv-btn-green"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:4}}><polyline points="20 6 9 17 4 12"/></svg>Unban</button>:<button onClick={()=>doBan('ban')} className="dv-btn-red"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:4}}><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>Ban</button>}
-          <button onClick={()=>setBanModal(null)} className="dv-btn-sec">Batal</button>
+          <button onClick={()=>doBan('unban')} className="dv-btn-green" style={{flex:1}}>✅ Unban</button>
+          <button onClick={()=>setBanModal(null)} className="dv-btn-sec">Cancel</button>
         </div>
       </>}
     </Modal>
