@@ -3,18 +3,18 @@ import { supabaseAdmin } from '../../../lib/supabase'
 import { requireAuth } from '../../../lib/middleware'
 import { hashPassword } from '../../../lib/auth'
 
+export const config = { api: { bodyParser: { sizeLimit: '10mb' } } }
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const user = await requireAuth(req, res)
   if (!user) return
 
   if (req.method === 'GET') {
-    // Get active key (not expired)
     const { data: activeKey } = await supabaseAdmin.from('keys')
       .select('*').eq('assigned_to', user.id).eq('is_active', true)
       .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
       .order('created_at', { ascending: false }).limit(1).single()
 
-    // Get expired keys too (to show)
     const { data: allKeys } = await supabaseAdmin.from('keys')
       .select('*').eq('assigned_to', user.id)
       .order('created_at', { ascending: false }).limit(10)
@@ -40,33 +40,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'PATCH') {
-    const { username, roblox_username, avatar_url, background_url, background_type, password } = req.body
+    const { username, roblox_username, avatar_url, avatar_file_url, background_url, background_type, password, leaderboard_public } = req.body
     const upd: any = { updated_at: new Date().toISOString() }
-
-    if (username !== undefined && username !== user.username) {
-      if (!username || username.length < 3 || username.length > 30)
-        return res.status(400).json({ error: 'Username 3–30 karakter' })
-      const { data: ex } = await supabaseAdmin.from('users').select('id')
-        .eq('username', username).neq('id', user.id).limit(1).single()
-      if (ex) return res.status(400).json({ error: 'Username sudah dipakai' })
-      upd.username = username
-    }
-    if (roblox_username !== undefined) upd.roblox_username = roblox_username || null
-    if (avatar_url      !== undefined) upd.avatar_url       = avatar_url || null
-    if (background_url  !== undefined) upd.background_url   = background_url || null
-    if (background_type !== undefined) upd.background_type  = background_type || 'image'
-    if (password) {
-      if (password.length < 6) return res.status(400).json({ error: 'Password min 6 karakter' })
-      upd.password_hash = await hashPassword(password)
-    }
+    if (username !== undefined)          upd.username = username
+    if (roblox_username !== undefined)   upd.roblox_username = roblox_username
+    if (avatar_url !== undefined)        upd.avatar_url = avatar_url
+    if (avatar_file_url !== undefined)   upd.avatar_file_url = avatar_file_url  // base64/url dari upload internal
+    if (background_url !== undefined)    upd.background_url = background_url
+    if (background_type !== undefined)   upd.background_type = background_type
+    if (leaderboard_public !== undefined) upd.leaderboard_public = leaderboard_public
+    if (password && password.length >= 6) upd.password_hash = await hashPassword(password)
 
     if (Object.keys(upd).length <= 1)
       return res.status(400).json({ error: 'Tidak ada perubahan' })
 
-    const { data, error } = await supabaseAdmin.from('users')
-      .update(upd).eq('id', user.id).select().single()
-    if (error) return res.status(500).json({ error: 'Gagal update: ' + error.message })
-    return res.json({ user: data, message: 'Profil berhasil diupdate' })
+    const { error } = await supabaseAdmin.from('users').update(upd).eq('id', user.id)
+    if (error) return res.status(500).json({ error: error.message })
+    return res.json({ success: true })
   }
 
   res.status(405).end()
