@@ -193,7 +193,8 @@ function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
             <div className="tabs" style={{marginBottom:20}}>
               {(['login','register'] as const).map(m=>(
                 <button key={m} className={`tab-btn ${mode===m?'active':''}`} onClick={()=>setMode(m)}>
-                  {m==='login'?'🔑 Login':'✨ Daftar'}
+                  <span className="tab-icon">{m==='login'?'🔑':'✨'}</span>
+                  <span className="tab-lbl">{m==='login'?'Login':'Daftar'}</span>
                 </button>
               ))}
             </div>
@@ -489,13 +490,16 @@ function UserDash({token,user,onLogout}:{token:string;user:User;onLogout:()=>voi
       <GetKeyModal open={getkeyOpen} onClose={()=>setGetkeyOpen(false)} token={token} onDone={load}/>
 
       <div className="tabs">
-        {[['dash','🏠 Dashboard'],[`notifs`, `🔔 Notif${unread>0?` (${unread})`:''}`],['profile','👤 Profil']].map((item,i)=>{
-          const v = i===0?'dash':i===1?'notifs':'profile'
-          const l = item[1] as string
-          return (
-            <button key={v} className={`tab-btn ${tab===v?'active':''}`} onClick={()=>{setTab(v);if(v==='notifs')api('/user/read-notifs','POST',{},token).then(load)}}>{l}</button>
-          )
-        })}
+        {([
+          ['dash','🏠','Dashboard'],
+          ['notifs',`🔔`,`Notif${unread>0?` (${unread})`:''}`],
+          ['profile','👤','Profil']
+        ] as [string,string,string][]).map(([v,icon,lbl],i)=>(
+          <button key={v} className={`tab-btn ${tab===v?'active':''}`} onClick={()=>{setTab(v);if(v==='notifs')api('/user/read-notifs','POST',{},token).then(load)}} style={{animation:`tabSlideIn .3s ease ${i*.07}s both`}}>
+            <span className="tab-icon">{icon}</span>
+            <span className="tab-lbl">{lbl}</span>
+          </button>
+        ))}
       </div>
 
       {/* DASHBOARD */}
