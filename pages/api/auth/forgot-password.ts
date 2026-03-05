@@ -23,11 +23,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     await sendResetCode(user.email, user.username, code)
-  } catch (err: any) {
-    console.error('Email error:', err?.message || err)
-    return res.status(500).json({ 
-      error: 'Gagal kirim email. Pastikan EMAIL_USER dan EMAIL_PASS (App Password Gmail) sudah diset di environment variables. Detail: ' + (err?.message || 'Unknown error')
-    })
+  } catch (err) {
+    console.error('Email error:', err)
+    return res.status(500).json({ error: 'Gagal kirim email, coba lagi' })
   }
 
   res.json({ success: true, message: 'Kode reset dikirim ke email kamu', username: user.username })
