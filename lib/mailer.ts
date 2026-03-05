@@ -3,11 +3,11 @@ import nodemailer from 'nodemailer'
 function createTransporter() {
   const user = process.env.EMAIL_USER
   const pass = process.env.EMAIL_PASS
-  if (!user || !pass) throw new Error('EMAIL_USER atau EMAIL_PASS belum diset di .env.local / Vercel Environment Variables. Pastikan menggunakan App Password Gmail (bukan password biasa)!')
+  if (!user || !pass) throw new Error('EMAIL_USER atau EMAIL_PASS belum diset di environment variables')
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    port: 587,
+    secure: false,
     auth: { user, pass },
     tls: { rejectUnauthorized: false }
   })
