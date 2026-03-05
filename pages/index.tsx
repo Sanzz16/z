@@ -380,85 +380,166 @@ function Stars({ rating }: { rating: number }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  SECTION: LANDING / HOME
+//  SECTION: BERANDA — Info / Artikel
 // ══════════════════════════════════════════════════════════════
 function SectionLanding({ setAuthMode, setShowScript }: any) {
   const FEATURES = [
-    { icon: '🎯', t: 'Record & Replay', d: 'Rekam rute berjalan lalu putar ulang otomatis' },
-    { icon: '⚡', t: 'Multi Executor', d: 'Support Synapse X, Fluxus, Delta, Arceus & semua executor' },
-    { icon: '🔒', t: 'Key System', d: 'Sistem key aman dengan verifikasi HWID' },
-    { icon: '🗺️', t: 'Route Library', d: 'Simpan & bagikan rute dengan komunitas' },
-    { icon: '📊', t: 'Leaderboard', d: 'Bersaing dengan player lain di leaderboard global' },
-    { icon: '🆓', t: 'Key Gratis', d: 'Claim key gratis 24 jam setiap hari' },
-    { icon: '💬', t: 'Feedback Board', d: 'Kirim saran & bug langsung dari game' },
-    { icon: '🎵', t: 'Music Player', d: 'Background music saat gunain dashboard' },
+    { icon: '🎯', t: 'Record & Replay', d: 'Rekam rute berjalan lalu putar ulang otomatis tanpa henti' },
+    { icon: '⚡', t: 'Multi Executor', d: 'Support Synapse X, Fluxus, Delta, Arceus X & semua executor populer' },
+    { icon: '🔒', t: 'Key System', d: 'Sistem key aman dengan verifikasi HWID — satu key satu device' },
+    { icon: '🗺️', t: 'Route Library', d: 'Simpan berbagai rute farming & kelola dari dashboard' },
+    { icon: '📊', t: 'Leaderboard Global', d: 'Bersaing dengan ribuan player di papan skor global AWR' },
+    { icon: '🆓', t: 'Key Gratis Harian', d: 'Claim key gratis 24 jam setiap hari tanpa syarat apapun' },
+    { icon: '💬', t: 'Community Feedback', d: 'Kirim saran, laporan bug & review langsung dari platform ini' },
+    { icon: '🏆', t: 'Event & Turnamen', d: 'Ikut event Block Blast berkala — menang & dapat key VIP gratis!' },
+  ]
+
+  const HOWTO = [
+    { n: '01', t: 'Daftar Akun', d: 'Buat akun gratis di pojok kanan atas. Tidak perlu email verifikasi.', c: '#00aaff' },
+    { n: '02', t: 'Dapatkan Key', d: 'Claim key gratis harian atau beli key premium sesuai kebutuhan farming kamu.', c: '#00ffcc' },
+    { n: '03', t: 'Pasang Script', d: 'Copy script AWR lalu paste di executor Roblox favoritmu. Masukkan key saat diminta.', c: '#a78bfa' },
+    { n: '04', t: 'Farming Otomatis', d: 'Rekam rute sekali, putar ulang berkali-kali. Nikmati farming tanpa capek!', c: '#f59e0b' },
   ]
 
   return (
-    <div style={{ animation: 'fadeUp .5s ease both' }}>
-      {/* HERO */}
-      <section style={{ textAlign: 'center', padding: '100px 24px 70px', position: 'relative' }}>
-        {/* Glow background blob */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 400, background: 'radial-gradient(ellipse,rgba(0,140,255,.08) 0%,transparent 70%)', pointerEvents: 'none' }} />
+    <div style={{ animation: 'fadeUp .4s ease both' }}>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,140,255,.1)', border: '1px solid rgba(0,140,255,.3)', borderRadius: 99, padding: '6px 18px 6px 12px', marginBottom: 28, animation: 'fadeDown .5s ease .1s both' }}>
-          <span style={{ background: 'rgba(0,200,100,.2)', border: '1px solid rgba(0,200,100,.3)', borderRadius: 99, padding: '2px 10px', color: '#4ade80', fontSize: '.72rem', fontWeight: 700, letterSpacing: 1 }}>LIVE</span>
-          <span style={{ color: '#5a9fd4', fontSize: '.82rem' }}>🎮 Roblox Auto Walk Recorder</span>
+      {/* ── HERO ── */}
+      <section style={{ position: 'relative', padding: '90px 24px 60px', textAlign: 'center', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,140,255,.07) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,200,100,.08)', border: '1px solid rgba(0,200,100,.25)', borderRadius: 99, padding: '5px 16px 5px 10px', marginBottom: 26, animation: 'fadeDown .4s ease .05s both' }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 8px #4ade80', display: 'inline-block', animation: 'pulse 2s ease infinite' }} />
+          <span style={{ color: '#4ade80', fontSize: '.78rem', fontWeight: 700, letterSpacing: .5 }}>AKTIF & ONLINE 24/7</span>
         </div>
 
-        <h1 style={{ fontSize: 'clamp(2.4rem,7vw,5rem)', fontWeight: 900, fontFamily: 'Orbitron,sans-serif', background: 'linear-gradient(135deg,#00aaff 0%,#00ffcc 50%,#ffffff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 20, lineHeight: 1.1, animation: 'fadeDown .5s ease .15s both' }}>
+        <h1 style={{ fontSize: 'clamp(2.8rem,8vw,5.5rem)', fontWeight: 900, fontFamily: 'Orbitron,sans-serif', background: 'linear-gradient(135deg,#00aaff 0%,#00ffcc 45%,#ffffff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 18, lineHeight: 1.05, animation: 'fadeDown .4s ease .1s both', letterSpacing: -1 }}>
           AUTO WALK<br />RECORDER
         </h1>
 
-        <p style={{ color: '#5a9fd4', fontSize: 'clamp(.95rem,2.5vw,1.15rem)', maxWidth: 540, margin: '0 auto 42px', lineHeight: 1.8, animation: 'fadeDown .5s ease .2s both' }}>
-          Script Roblox terbaik untuk merekam dan memutar ulang rute berjalan secara otomatis. Farming jadi mudah!
+        <p style={{ color: '#5a9fd4', fontSize: 'clamp(.95rem,2.2vw,1.1rem)', maxWidth: 520, margin: '0 auto 36px', lineHeight: 1.85, animation: 'fadeDown .4s ease .15s both' }}>
+          Script Roblox paling canggih untuk merekam & memutar rute berjalan otomatis. Farming jadi efisien, akun aman, & komunitas aktif.
         </p>
 
-        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', animation: 'fadeDown .5s ease .25s both' }}>
-          <button onClick={() => setShowScript(true)}
-            style={{ background: 'linear-gradient(135deg,#0044bb,#00aaff)', border: 'none', borderRadius: 14, color: '#fff', padding: '16px 36px', fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1.15rem', cursor: 'pointer', boxShadow: '0 4px 28px rgba(0,120,255,.45)', transition: 'all .2s' }}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', animation: 'fadeDown .4s ease .2s both', marginBottom: 60 }}>
+          <button onClick={() => setShowScript(true)} style={{ background: 'linear-gradient(135deg,#0044bb,#00aaff)', border: 'none', borderRadius: 14, color: '#fff', padding: '15px 34px', fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer', boxShadow: '0 4px 28px rgba(0,120,255,.45)', transition: 'all .2s', letterSpacing: .5 }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 36px rgba(0,120,255,.6)' }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 28px rgba(0,120,255,.45)' }}>
-            ⚡ GET SCRIPT
+            ⚡ GET SCRIPT GRATIS
           </button>
-          <button onClick={() => setAuthMode('register')}
-            style={{ background: 'rgba(0,140,255,.08)', border: '1.5px solid rgba(0,140,255,.35)', borderRadius: 14, color: '#00aaff', padding: '16px 36px', fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1.15rem', cursor: 'pointer', transition: 'all .2s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,140,255,.15)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,140,255,.08)'; e.currentTarget.style.transform = 'translateY(0)' }}>
+          <button onClick={() => setAuthMode('register')} style={{ background: 'rgba(0,140,255,.07)', border: '1.5px solid rgba(0,140,255,.3)', borderRadius: 14, color: '#00aaff', padding: '15px 34px', fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1.1rem', cursor: 'pointer', transition: 'all .2s', letterSpacing: .5 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,140,255,.14)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,140,255,.07)'; e.currentTarget.style.transform = 'translateY(0)' }}>
             ✨ Daftar Gratis
           </button>
         </div>
 
-        {/* Stats row */}
-        <div style={{ display: 'flex', gap: 32, justifyContent: 'center', marginTop: 56, flexWrap: 'wrap', animation: 'fadeUp .5s ease .35s both' }}>
-          {[{ v: '1000+', l: 'Pengguna' }, { v: '99.9%', l: 'Uptime' }, { v: '50K+', l: 'Eksekusi' }, { v: '24/7', l: 'Support' }].map(s => (
-            <div key={s.l} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#00aaff', fontFamily: 'Orbitron,sans-serif', letterSpacing: -1 }}>{s.v}</div>
-              <div style={{ color: '#3a6a8a', fontSize: '.78rem', marginTop: 2, letterSpacing: 1 }}>{s.l}</div>
+        {/* Stats */}
+        <div style={{ display: 'flex', gap: 0, justifyContent: 'center', flexWrap: 'wrap', animation: 'fadeUp .4s ease .25s both', background: 'rgba(0,140,255,.04)', border: '1px solid rgba(0,140,255,.1)', borderRadius: 20, padding: '22px 32px', maxWidth: 600, margin: '0 auto' }}>
+          {[{ v: '1000+', l: 'Pengguna Aktif' }, { v: '50K+', l: 'Total Eksekusi' }, { v: '99.9%', l: 'Uptime' }, { v: '24/7', l: 'Support' }].map((s, i) => (
+            <div key={s.l} style={{ textAlign: 'center', flex: 1, minWidth: 100, padding: '0 8px', borderRight: i < 3 ? '1px solid rgba(0,140,255,.12)' : 'none' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#00aaff', fontFamily: 'Orbitron,sans-serif', letterSpacing: -1 }}>{s.v}</div>
+              <div style={{ color: '#3a6a8a', fontSize: '.72rem', marginTop: 4, letterSpacing: .5 }}>{s.l}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section style={{ padding: '10px 24px 70px', maxWidth: 1100, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 44 }}>
-          <div style={{ display: 'inline-block', background: 'rgba(0,140,255,.1)', border: '1px solid rgba(0,140,255,.2)', borderRadius: 99, padding: '4px 14px', color: '#00aaff', fontSize: '.75rem', fontWeight: 700, letterSpacing: 2, marginBottom: 12 }}>FITUR</div>
-          <h2 style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'Rajdhani,sans-serif', color: '#cce4f8', marginBottom: 8 }}>Kenapa AWR Script?</h2>
-          <div style={{ color: '#3a6a8a', fontSize: '.88rem' }}>Fitur terlengkap untuk farming otomatis di Roblox</div>
+      {/* ── TENTANG AWR — Artikel ── */}
+      <section style={{ maxWidth: 900, margin: '0 auto', padding: '20px 24px 60px' }}>
+        <div style={{ background: 'linear-gradient(145deg,rgba(0,140,255,.05),rgba(0,255,204,.03))', border: '1px solid rgba(0,140,255,.15)', borderRadius: 24, padding: '36px 40px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(0,170,255,.5),transparent)' }} />
+          <div style={{ display: 'inline-block', background: 'rgba(0,140,255,.1)', border: '1px solid rgba(0,140,255,.2)', borderRadius: 99, padding: '3px 14px', color: '#00aaff', fontSize: '.7rem', fontWeight: 700, letterSpacing: 2, marginBottom: 16 }}>TENTANG AWR</div>
+          <h2 style={{ fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1.7rem', color: '#cce4f8', marginBottom: 16, lineHeight: 1.3 }}>Apa itu AWR Script?</h2>
+          <p style={{ color: '#8ab8d8', fontSize: '.95rem', lineHeight: 1.9, marginBottom: 16 }}>
+            <strong style={{ color: '#00aaff' }}>AWR (Auto Walk Recorder)</strong> adalah script Roblox yang memungkinkan kamu merekam rute perjalanan karaktermu, lalu memutarnya ulang secara otomatis tanpa henti. Cocok untuk farming item, grinding quest, atau apapun yang butuh pergerakan berulang di game Roblox.
+          </p>
+          <p style={{ color: '#8ab8d8', fontSize: '.95rem', lineHeight: 1.9, marginBottom: 24 }}>
+            Script ini dilengkapi sistem <strong style={{ color: '#00ffcc' }}>Key Protection</strong> berbasis HWID untuk melindungi dari penyalahgunaan, serta dashboard web lengkap untuk manajemen akun, melihat statistik, dan mengikuti event komunitas.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
+            {[
+              { icon: '🎮', t: 'Untuk Semua Game Roblox', d: 'Bisa digunakan di game Roblox apapun yang membutuhkan pergerakan otomatis' },
+              { icon: '🔐', t: 'Aman & Terproteksi', d: 'Key system HWID memastikan hanya kamu yang bisa pakai key milikmu' },
+              { icon: '🌐', t: 'Dashboard Online', d: 'Kelola key, lihat statistik, dan ikut event dari mana saja via web' },
+            ].map(item => (
+              <div key={item.t} style={{ background: 'rgba(0,140,255,.05)', border: '1px solid rgba(0,140,255,.1)', borderRadius: 14, padding: '16px 18px', transition: 'all .2s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,160,255,.3)'; e.currentTarget.style.background = 'rgba(0,140,255,.09)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,140,255,.1)'; e.currentTarget.style.background = 'rgba(0,140,255,.05)' }}>
+                <div style={{ fontSize: '1.6rem', marginBottom: 8 }}>{item.icon}</div>
+                <div style={{ fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, color: '#cce4f8', marginBottom: 6, fontSize: '.95rem' }}>{item.t}</div>
+                <div style={{ color: '#3a6a8a', fontSize: '.8rem', lineHeight: 1.6 }}>{item.d}</div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 16 }}>
-          {FEATURES.map((f, i) => (
-            <div key={f.t} style={{ background: 'rgba(0,140,255,.04)', border: '1px solid rgba(0,140,255,.1)', borderRadius: 16, padding: '22px 18px', textAlign: 'center', transition: 'all .25s', animation: `fadeUp .4s ease ${i * .05}s both`, cursor: 'default' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,160,255,.4)'; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.background = 'rgba(0,140,255,.08)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,140,255,.1)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(0,140,255,.04)' }}>
-              <div style={{ fontSize: '2.2rem', marginBottom: 12 }}>{f.icon}</div>
-              <div style={{ fontWeight: 700, color: '#cce4f8', marginBottom: 8, fontFamily: 'Rajdhani,sans-serif', fontSize: '1.05rem' }}>{f.t}</div>
-              <div style={{ color: '#3a6a8a', fontSize: '.82rem', lineHeight: 1.6 }}>{f.d}</div>
+      </section>
+
+      {/* ── CARA PAKAI ── */}
+      <section style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px 60px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(0,255,204,.08)', border: '1px solid rgba(0,255,204,.2)', borderRadius: 99, padding: '3px 14px', color: '#00ffcc', fontSize: '.7rem', fontWeight: 700, letterSpacing: 2, marginBottom: 12 }}>CARA PAKAI</div>
+          <h2 style={{ fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1.7rem', color: '#cce4f8' }}>Mulai dalam 4 langkah mudah</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 14 }}>
+          {HOWTO.map((step, i) => (
+            <div key={step.n} style={{ background: 'rgba(255,255,255,.02)', border: `1px solid rgba(${step.c === '#00aaff' ? '0,170,255' : step.c === '#00ffcc' ? '0,255,204' : step.c === '#a78bfa' ? '167,139,250' : '245,158,11'},.15)`, borderRadius: 18, padding: '24px 20px', position: 'relative', overflow: 'hidden', animation: `fadeUp .4s ease ${i * .08}s both`, transition: 'all .25s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.background = 'rgba(255,255,255,.04)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,.02)' }}>
+              <div style={{ fontFamily: 'Orbitron,sans-serif', fontSize: '2.4rem', fontWeight: 900, color: step.c, opacity: .18, position: 'absolute', top: 12, right: 16, lineHeight: 1 }}>{step.n}</div>
+              <div style={{ background: `rgba(${step.c === '#00aaff' ? '0,170,255' : step.c === '#00ffcc' ? '0,255,204' : step.c === '#a78bfa' ? '167,139,250' : '245,158,11'},.12)`, border: `1px solid rgba(${step.c === '#00aaff' ? '0,170,255' : step.c === '#00ffcc' ? '0,255,204' : step.c === '#a78bfa' ? '167,139,250' : '245,158,11'},.25)`, borderRadius: 99, display: 'inline-flex', padding: '3px 12px', marginBottom: 14 }}>
+                <span style={{ fontFamily: 'Orbitron,sans-serif', fontWeight: 900, fontSize: '.72rem', color: step.c, letterSpacing: 1 }}>STEP {step.n}</span>
+              </div>
+              <div style={{ fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, color: '#cce4f8', fontSize: '1.05rem', marginBottom: 8 }}>{step.t}</div>
+              <div style={{ color: '#3a6a8a', fontSize: '.82rem', lineHeight: 1.7 }}>{step.d}</div>
             </div>
           ))}
         </div>
       </section>
+
+      {/* ── FITUR LENGKAP ── */}
+      <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 60px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(0,140,255,.1)', border: '1px solid rgba(0,140,255,.2)', borderRadius: 99, padding: '3px 14px', color: '#00aaff', fontSize: '.7rem', fontWeight: 700, letterSpacing: 2, marginBottom: 12 }}>FITUR</div>
+          <h2 style={{ fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1.7rem', color: '#cce4f8', marginBottom: 6 }}>Semua yang kamu butuhkan</h2>
+          <div style={{ color: '#3a6a8a', fontSize: '.85rem' }}>Platform terlengkap untuk farming otomatis Roblox</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 14 }}>
+          {FEATURES.map((f, i) => (
+            <div key={f.t} style={{ background: 'rgba(0,140,255,.03)', border: '1px solid rgba(0,140,255,.09)', borderRadius: 16, padding: '20px 18px', transition: 'all .22s', animation: `fadeUp .35s ease ${i * .04}s both` }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,160,255,.35)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.background = 'rgba(0,140,255,.07)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,140,255,.09)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(0,140,255,.03)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 10 }}>{f.icon}</div>
+              <div style={{ fontWeight: 700, color: '#cce4f8', marginBottom: 6, fontFamily: 'Rajdhani,sans-serif', fontSize: '1rem' }}>{f.t}</div>
+              <div style={{ color: '#3a6a8a', fontSize: '.8rem', lineHeight: 1.65 }}>{f.d}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── CTA BOTTOM ── */}
+      <section style={{ maxWidth: 700, margin: '0 auto', padding: '0 24px 80px', textAlign: 'center' }}>
+        <div style={{ background: 'linear-gradient(145deg,rgba(0,68,187,.12),rgba(0,170,255,.08))', border: '1px solid rgba(0,140,255,.2)', borderRadius: 24, padding: '44px 36px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,#00aaff,#00ffcc,transparent)' }} />
+          <div style={{ fontSize: '2.5rem', marginBottom: 16 }}>🚀</div>
+          <h2 style={{ fontFamily: 'Orbitron,sans-serif', fontWeight: 900, fontSize: '1.6rem', color: '#cce4f8', marginBottom: 12, lineHeight: 1.2 }}>Siap mulai farming<br />otomatis?</h2>
+          <p style={{ color: '#5a9fd4', fontSize: '.9rem', marginBottom: 28, lineHeight: 1.7 }}>Daftar gratis sekarang dan dapatkan key 24 jam pertama tanpa biaya. Mulai farming lebih cerdas hari ini!</p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button onClick={() => setAuthMode('register')} style={{ background: 'linear-gradient(135deg,#0044bb,#00aaff)', border: 'none', borderRadius: 13, color: '#fff', padding: '14px 32px', fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', boxShadow: '0 4px 24px rgba(0,140,255,.4)', transition: 'all .2s' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 32px rgba(0,140,255,.55)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,140,255,.4)' }}>
+              ✨ Daftar Gratis Sekarang
+            </button>
+            <button onClick={() => setShowScript(true)} style={{ background: 'rgba(0,140,255,.09)', border: '1px solid rgba(0,140,255,.3)', borderRadius: 13, color: '#00aaff', padding: '14px 28px', fontFamily: 'Rajdhani,sans-serif', fontWeight: 800, fontSize: '1rem', cursor: 'pointer', transition: 'all .2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,140,255,.16)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,140,255,.09)'}>
+              ⚡ Coba Script Dulu
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <style>{`@keyframes pulse{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}`}</style>
     </div>
   )
 }
