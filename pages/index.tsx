@@ -766,7 +766,7 @@ export default function HomePage() {
     setAuthMode(null)
     setLoggedIn(true)
     showToast(`Selamat datang, ${user.username}! 🎉`, 'success')
-    setTimeout(() => router.push('/'), 800)
+    setTimeout(() => router.push('/dashboard'), 800)
   }
 
   function handleBanClose() {
@@ -826,7 +826,7 @@ export default function HomePage() {
           {/* Auth buttons */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {loggedIn ? (
-              <button onClick={() => router.push('/')} style={{ background: 'linear-gradient(135deg,#0044bb,#00aaff)', border: 'none', borderRadius: 9, color: '#fff', padding: '8px 18px', cursor: 'pointer', fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, fontSize: '.85rem', boxShadow: '0 2px 14px rgba(0,120,255,.35)' }}>
+              <button onClick={() => router.push('/dashboard')} style={{ background: 'linear-gradient(135deg,#0044bb,#00aaff)', border: 'none', borderRadius: 9, color: '#fff', padding: '8px 18px', cursor: 'pointer', fontFamily: 'Rajdhani,sans-serif', fontWeight: 700, fontSize: '.85rem', boxShadow: '0 2px 14px rgba(0,120,255,.35)' }}>
                 Dashboard →
               </button>
             ) : <>
