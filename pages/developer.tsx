@@ -3,6 +3,165 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 
 // ══════════════════════════════════════════════════════════════
+// HELPERS — api, toast, Modal, Particles, DurationDropdown, BanDialog
+// ══════════════════════════════════════════════════════════════
+
+async function api(path:string,method='GET',body?:any,token?:string|null){
+  try{
+    const r=await fetch('/api'+path,{
+      method,
+      headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},
+      body:body?JSON.stringify(body):undefined
+    })
+    return r.json()
+  }catch(e){return{error:'Koneksi gagal, coba lagi'}}
+}
+
+function fmtDate(d:string|null){
+  if(!d)return '∞ Lifetime'
+  return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+}
+function timeLeft(d:string|null){
+  if(!d)return '∞'
+  const diff=new Date(d).getTime()-Date.now()
+  if(diff<=0)return 'Expired'
+  const days=Math.floor(diff/86400000),hrs=Math.floor((diff%86400000)/3600000),mins=Math.floor((diff%3600000)/60000)
+  if(days>0)return `${days}h ${hrs}j`
+  if(hrs>0)return `${hrs}j ${mins}m`
+  return `${mins}m`
+}
+function isExpired(d:string|null){if(!d)return false;return new Date(d)<new Date()}
+function copyText(t:string){navigator.clipboard.writeText(t).catch(()=>{})}
+
+const DUR:Record<string,string>={'24h':'24 Jam','3d':'3 Hari','5d':'5 Hari','7d':'7 Hari','30d':'30 Hari','60d':'60 Hari','lifetime':'Lifetime'}
+const DURS=Object.keys(DUR)
+
+// ── Toast ──────────────────────────────────────────────────────
+let _toast:(msg:string,type?:string)=>void=()=>{}
+function toast(msg:string,type='info'){_toast(msg,type)}
+
+function ToastRoot(){
+  const [items,setItems]=useState<any[]>([]);const id=useRef(0)
+  useEffect(()=>{
+    _toast=(msg,type='info')=>{
+      const n=++id.current
+      const icon=type==='error'?'error':type==='success'?'success':type==='warn'?'warn':'info'
+      setItems(p=>[...p,{id:n,msg,type,icon}])
+      setTimeout(()=>setItems(p=>p.filter(x=>x.id!==n)),4000)
+    }
+  },[])
+  return(
+    <div style={{position:'fixed',bottom:24,right:24,zIndex:9999,display:'flex',flexDirection:'column',gap:9,maxWidth:340,pointerEvents:'none'}}>
+      {items.map(t=>(
+        <div key={t.id} style={{background:'rgba(10,11,13,.97)',border:'1px solid rgba(255,255,255,.08)',borderLeft:`3px solid ${t.type==='success'?'#32ff7e':t.type==='error'?'#ff4757':t.type==='warn'?'#f59e0b':'#c77dff'}`,borderRadius:15,padding:'13px 16px',display:'flex',gap:10,alignItems:'flex-start',animation:'dvToastIn .35s ease',backdropFilter:'blur(14px)',boxShadow:'0 10px 36px rgba(0,0,0,.7)',pointerEvents:'all'}}>
+          <div style={{flexShrink:0,width:18,height:18,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {t.icon==='success'?<svg viewBox='0 0 24 24' fill='none' stroke='#32ff7e' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><polyline points='20 6 9 17 4 12'/></svg>
+            :t.icon==='error'?<svg viewBox='0 0 24 24' fill='none' stroke='#ff4757' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg>
+            :t.icon==='warn'?<svg viewBox='0 0 24 24' fill='none' stroke='#f59e0b' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><path d='M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z'/><line x1='12' y1='9' x2='12' y2='13'/><line x1='12' y1='17' x2='12.01' y2='17'/></svg>
+            :<svg viewBox='0 0 24 24' fill='none' stroke='#c77dff' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><line x1='12' y1='16' x2='12.01' y2='16'/></svg>}
+          </div>
+          <div>
+            <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'.85rem',color:'#fff',marginBottom:2}}>{t.type==='error'?'Error':t.type==='success'?'Sukses':t.type==='warn'?'Peringatan':'Info'}</div>
+            <div style={{fontSize:'.78rem',color:'#8a8a9a',lineHeight:1.4}}>{t.msg}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Modal ──────────────────────────────────────────────────────
+function Modal({open,onClose,title,children,wide=false}:{open:boolean;onClose:()=>void;title:string;children:React.ReactNode;wide?:boolean}){
+  useEffect(()=>{const h=(e:KeyboardEvent)=>{if(e.key==='Escape')onClose()};if(open)window.addEventListener('keydown',h);return()=>window.removeEventListener('keydown',h)},[open,onClose])
+  if(!open)return null
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.88)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(12px)',animation:'dvFadeIn .2s ease',padding:20}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div style={{background:'linear-gradient(160deg,#0f1014,#0a0b0e)',border:'1px solid rgba(168,85,247,.15)',borderRadius:24,padding:28,width:'100%',maxWidth:wide?680:500,maxHeight:'90vh',overflowY:'auto',animation:'dvModalIn .35s cubic-bezier(.34,1.56,.64,1)',boxShadow:'0 40px 80px rgba(0,0,0,.9)',position:'relative'}}>
+        <div style={{position:'absolute',top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,transparent,rgba(168,85,247,.6),transparent)',borderRadius:'24px 24px 0 0'}}/>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1.2rem',fontWeight:700,background:'linear-gradient(135deg,#a855f7,#c77dff)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{title}</div>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'#8a8a9a',borderRadius:9,padding:'5px 10px',cursor:'pointer',transition:'all .2s'}}>✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+// ── Particles ──────────────────────────────────────────────────
+function Particles(){
+  const ref=useRef<HTMLCanvasElement>(null)
+  useEffect(()=>{
+    const c=ref.current;if(!c)return
+    const ctx=c.getContext('2d')!
+    let W=c.width=window.innerWidth,H=c.height=window.innerHeight
+    const pts=Array.from({length:60},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25,r:Math.random()*1.8+.4,a:Math.random()*.35+.1}))
+    const resize=()=>{W=c.width=window.innerWidth;H=c.height=window.innerHeight}
+    window.addEventListener('resize',resize)
+    let raf:number
+    function draw(){
+      ctx.clearRect(0,0,W,H)
+      pts.forEach(p=>{
+        p.x+=p.vx;p.y+=p.vy
+        if(p.x<0||p.x>W)p.vx*=-1
+        if(p.y<0||p.y>H)p.vy*=-1
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2)
+        ctx.fillStyle=`rgba(168,85,247,${p.a})`;ctx.fill()
+        ctx.shadowBlur=6;ctx.shadowColor='rgba(168,85,247,.4)';ctx.fill();ctx.shadowBlur=0
+      })
+      for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
+        const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy)
+        if(d<120){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(168,85,247,${.1*(1-d/120)})`;ctx.lineWidth=.6;ctx.stroke()}
+      }
+      raf=requestAnimationFrame(draw)
+    }
+    draw()
+    return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize)}
+  },[])
+  return <canvas ref={ref} style={{position:'fixed',top:0,left:0,width:'100%',height:'100%',zIndex:0,pointerEvents:'none'}}/>
+}
+
+// ── DurationDropdown ───────────────────────────────────────────
+function DurationDropdown({value,onChange}:{value:string;onChange:(v:string)=>void}){
+  return(
+    <select className="dv-fi" value={value} onChange={e=>onChange(e.target.value)}>
+      {DURS.map(d=><option key={d} value={d}>{DUR[d]}</option>)}
+    </select>
+  )
+}
+
+// ── BanDialog ──────────────────────────────────────────────────
+function BanDialog({open,user,onClose,onConfirm}:{open:boolean;user:any;onClose:()=>void;onConfirm:(reason:string)=>void}){
+  const [reason,setReason]=useState('')
+  if(!open||!user)return null
+  return(
+    <div style={{position:'fixed',inset:0,zIndex:600,background:'rgba(0,0,0,.9)',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(10px)'}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div style={{background:'linear-gradient(160deg,#110a0a,#0a0a10)',border:'2px solid rgba(220,50,50,.35)',borderRadius:20,padding:28,width:420,maxWidth:'95vw',boxShadow:'0 0 60px rgba(220,50,50,.15)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:800,fontSize:'1.2rem',color:'#f87171'}}>🚫 Ban User</div>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'#8a8a9a',borderRadius:8,padding:'4px 10px',cursor:'pointer'}}>✕</button>
+        </div>
+        <div style={{background:'rgba(220,50,50,.08)',border:'1px solid rgba(220,50,50,.2)',borderRadius:10,padding:'12px 16px',marginBottom:16}}>
+          <div style={{color:'#f87171',fontWeight:700,marginBottom:4}}>Username: <span style={{color:'#fff'}}>{user?.username}</span></div>
+          <div style={{color:'#8a8a9a',fontSize:'.82rem'}}>User ini akan dibanned dan semua key-nya dinonaktifkan.</div>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label style={{color:'#8a8a9a',fontSize:'.82rem',display:'block',marginBottom:6}}>Alasan ban (opsional):</label>
+          <input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Melanggar aturan..."
+            style={{width:'100%',background:'rgba(220,50,50,.06)',border:'1px solid rgba(220,50,50,.2)',borderRadius:10,color:'#fff',padding:'10px 14px',outline:'none',boxSizing:'border-box' as const,fontFamily:'Outfit,sans-serif'}}/>
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={onClose} style={{flex:1,background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:10,color:'#8a8a9a',padding:'11px',cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>Cancel</button>
+          <button onClick={()=>{onConfirm(reason);setReason('')}} style={{flex:1,background:'linear-gradient(135deg,#7f1d1d,#dc2626)',border:'none',borderRadius:10,color:'#fff',padding:'11px',cursor:'pointer',fontFamily:'Rajdhani,sans-serif',fontWeight:700}}>🚫 Ban Sekarang</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
+
+// ══════════════════════════════════════════════════════════════
 // BROADCAST TAB — useRef untuk input biar gak re-render tiap ketik
 // ══════════════════════════════════════════════════════════════
 const BroadcastTab=React.memo(function BroadcastTab({token}:{token:string|null}){
