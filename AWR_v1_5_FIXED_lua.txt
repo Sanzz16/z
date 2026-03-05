@@ -1,0 +1,2642 @@
+-- ╔══════════════════════════════════════════════════════════╗
+-- ║        AUTO WALK RECORDER                           ║
+-- ║  Developer : Sanzxmzz  |  Version : v1.4                ║
+-- ╚══════════════════════════════════════════════════════════╝
+
+-- ════════════════════════════════════════════════
+-- KEY SYSTEM v3 — Fix untuk semua executor
+-- ════════════════════════════════════════════════
+local KEY_API = "https://marksanzxmzz.vercel.app/api/verify" -- ← WAJIB GANTI!
+
+-- Global: simpan hasil verify untuk Info tab
+local _verifyData = {}
+
+-- HTTP kompatibel semua executor (Synapse, Fluxus, Delta, Arceus, dll)
+local function httpGet(url)
+    local body = nil
+    -- Method 1: syn.request (Synapse X)
+    if not body then pcall(function()
+        if syn and syn.request then
+            local r = syn.request({Url=url,Method="GET"})
+            if r and r.StatusCode==200 then body=r.Body end
+        end
+    end) end
+    -- Method 2: request() global (banyak executor)
+    if not body then pcall(function()
+        if request then
+            local r = request({Url=url,Method="GET"})
+            if r and r.StatusCode==200 then body=r.Body end
+        end
+    end) end
+    -- Method 3: http.request
+    if not body then pcall(function()
+        if http and http.request then
+            local r = http.request({Url=url,Method="GET"})
+            if r and r.StatusCode==200 then body=r.Body end
+        end
+    end) end
+    -- Method 4: fluxus/executor request
+    if not body then pcall(function()
+        if fluxus and fluxus.request then
+            local r = fluxus.request({Url=url,Method="GET"})
+            if r and r.StatusCode==200 then body=r.Body end
+        end
+    end) end
+    -- Method 5: game:HttpGet
+    if not body then pcall(function()
+        body = game:HttpGet(url, true)
+    end) end
+    -- Method 6: HttpService (fallback)
+    if not body then pcall(function()
+        body = game:GetService("HttpService"):GetAsync(url, true)
+    end) end
+    return body
+end
+
+local function urlEnc(s)
+    return tostring(s):gsub("[^%w%-_%.~]", function(c)
+        return ("%%%02X"):format(c:byte())
+    end)
+end
+
+local function getHWID()
+    local h = ""
+    pcall(function() if gethwid then h = tostring(gethwid()) end end)
+    if h == "" then
+        pcall(function()
+            h = tostring(game:GetService("Players").LocalPlayer.UserId).."_RBX"
+        end)
+    end
+    return h ~= "" and h or "no_hwid"
+end
+
+local function verifyKey(key)
+    local hs = game:GetService("HttpService")
+    local pl = game:GetService("Players").LocalPlayer
+    local url = KEY_API.."?key="..urlEnc(key).."&user="..urlEnc(pl.Name).."&hwid="..urlEnc(getHWID())
+    local raw = httpGet(url)
+    if not raw then
+        return false, "⚠ HTTP gagal. Cek executor support HttpGet/request()"
+    end
+    local ok2, data = pcall(function() return hs:JSONDecode(raw) end)
+    if not ok2 or type(data)~="table" then
+        return false, "⚠ Response error dari server"
+    end
+    return data.success==true, data.message or "Error", data
+end
+
+local function loadSaved()
+    local k = ""
+    pcall(function() if isfile and isfile("awr_key.txt") then k=readfile("awr_key.txt"):gsub("%s+","") end end)
+    return k
+end
+
+local function saveKey(k)
+    pcall(function() if writefile then writefile("awr_key.txt", k) end end)
+end
+
+-- ── KEY GUI ─────────────────────────────────────────
+local function showKeyGUI(onValid)
+    local Players   = game:GetService("Players")
+    local TweenSvc  = game:GetService("TweenService")
+    local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    pcall(function()
+        local o = PlayerGui:FindFirstChild("_AWR_KeyGUI")
+        if o then o:Destroy() end
+    end)
+
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "_AWR_KeyGUI"; sg.ResetOnSpawn = false
+    sg.DisplayOrder = 9999; sg.IgnoreGuiInset = true
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.Parent = PlayerGui
+
+    -- Dim overlay
+    local dim = Instance.new("Frame")
+    dim.Size = UDim2.new(1,0,1,0)
+    dim.BackgroundColor3 = Color3.fromRGB(0,4,14)
+    dim.BackgroundTransparency = 0.3
+    dim.BorderSizePixel = 0; dim.ZIndex = 1; dim.Parent = sg
+
+    -- Card
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(0,310,0,250)
+    card.AnchorPoint = Vector2.new(0.5, 0.5)
+    card.Position = UDim2.new(0.5,0, 1.8,0)  -- mulai bawah layar
+    card.BackgroundColor3 = Color3.fromRGB(6,12,28)
+    card.BorderSizePixel = 0; card.ZIndex = 2; card.Parent = sg
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0,16)
+    do
+        local sk = Instance.new("UIStroke"); sk.Parent = card
+        sk.Color = Color3.fromRGB(0,140,255); sk.Thickness = 1.5; sk.Transparency = 0.25
+        sk.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    end
+
+    -- Header
+    local hdr = Instance.new("Frame")
+    hdr.Size = UDim2.new(1,0,0,54)
+    hdr.BackgroundColor3 = Color3.fromRGB(0,55,145)
+    hdr.BackgroundTransparency = 0.2
+    hdr.BorderSizePixel = 0; hdr.ZIndex = 3; hdr.Parent = card
+    Instance.new("UICorner", hdr).CornerRadius = UDim.new(0,16)
+    local hFix = Instance.new("Frame")  -- nutupin rounded bawah header
+    hFix.Size = UDim2.new(1,0,0,14); hFix.Position = UDim2.new(0,0,1,-14)
+    hFix.BackgroundColor3 = Color3.fromRGB(0,55,145); hFix.BackgroundTransparency = 0.2
+    hFix.BorderSizePixel = 0; hFix.ZIndex = 3; hFix.Parent = hdr
+
+    local t1 = Instance.new("TextLabel")
+    t1.Size = UDim2.new(1,0,0,26); t1.Position = UDim2.new(0,0,0,5)
+    t1.BackgroundTransparency = 1
+    t1.Text = "⚡  AWR SCRIPT"; t1.Font = Enum.Font.GothamBold; t1.TextSize = 17
+    t1.TextColor3 = Color3.fromRGB(60,210,255); t1.ZIndex = 4; t1.Parent = hdr
+
+    local t2 = Instance.new("TextLabel")
+    t2.Size = UDim2.new(1,0,0,16); t2.Position = UDim2.new(0,0,0,30)
+    t2.BackgroundTransparency = 1
+    t2.Text = "by Sanzxmzz  •  Key System"; t2.Font = Enum.Font.Gotham; t2.TextSize = 10
+    t2.TextColor3 = Color3.fromRGB(80,145,220); t2.ZIndex = 4; t2.Parent = hdr
+
+    -- Input
+    local inBg = Instance.new("Frame")
+    inBg.Size = UDim2.new(1,-22,0,34); inBg.Position = UDim2.new(0,11,0,62)
+    inBg.BackgroundColor3 = Color3.fromRGB(2,8,22)
+    inBg.BorderSizePixel = 0; inBg.ZIndex = 3; inBg.Parent = card
+    Instance.new("UICorner", inBg).CornerRadius = UDim.new(0,9)
+    do
+        local sk = Instance.new("UIStroke"); sk.Parent = inBg
+        sk.Color = Color3.fromRGB(0,100,210); sk.Thickness = 1.1
+        sk.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    end
+
+    local keyBox = Instance.new("TextBox")
+    keyBox.Size = UDim2.new(1,-10,1,0); keyBox.Position = UDim2.new(0,5,0,0)
+    keyBox.BackgroundTransparency = 1
+    keyBox.Text = ""; keyBox.PlaceholderText = "AWR-XXXX-XXXX-XXXX"
+    keyBox.TextColor3 = Color3.fromRGB(0,220,255)
+    keyBox.PlaceholderColor3 = Color3.fromRGB(50,90,135)
+    keyBox.Font = Enum.Font.GothamBold; keyBox.TextSize = 12
+    keyBox.ClearTextOnFocus = false
+    keyBox.TextXAlignment = Enum.TextXAlignment.Center
+    keyBox.ZIndex = 4; keyBox.Parent = inBg
+
+    keyBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local u = keyBox.Text:upper()
+        if u ~= keyBox.Text then keyBox.Text = u end
+    end)
+
+    -- Status
+    local lbSt = Instance.new("TextLabel")
+    lbSt.Size = UDim2.new(1,-22,0,26); lbSt.Position = UDim2.new(0,11,0,103)
+    lbSt.BackgroundTransparency = 1
+    lbSt.Text = "Masukkan key AWR kamu di atas"
+    lbSt.TextColor3 = Color3.fromRGB(70,125,195)
+    lbSt.Font = Enum.Font.Gotham; lbSt.TextSize = 10
+    lbSt.TextWrapped = true; lbSt.ZIndex = 3; lbSt.Parent = card
+
+    -- Progress bar
+    local pgBg = Instance.new("Frame")
+    pgBg.Size = UDim2.new(1,-22,0,4); pgBg.Position = UDim2.new(0,11,0,135)
+    pgBg.BackgroundColor3 = Color3.fromRGB(8,18,40)
+    pgBg.BorderSizePixel = 0; pgBg.ZIndex = 3; pgBg.Parent = card
+    Instance.new("UICorner", pgBg).CornerRadius = UDim.new(0,4)
+    local pgFill = Instance.new("Frame")
+    pgFill.Size = UDim2.new(0,0,1,0)
+    pgFill.BackgroundColor3 = Color3.fromRGB(0,180,255)
+    pgFill.BorderSizePixel = 0; pgFill.ZIndex = 4; pgFill.Parent = pgBg
+    Instance.new("UICorner", pgFill).CornerRadius = UDim.new(0,4)
+
+    -- Tombol Verify
+    local btnV = Instance.new("TextButton")
+    btnV.Size = UDim2.new(1,-22,0,36); btnV.Position = UDim2.new(0,11,0,147)
+    btnV.BackgroundColor3 = Color3.fromRGB(0,100,220)
+    btnV.Text = "🔑  VERIFY KEY"
+    btnV.TextColor3 = Color3.fromRGB(255,255,255)
+    btnV.Font = Enum.Font.GothamBold; btnV.TextSize = 13
+    btnV.BorderSizePixel = 0; btnV.AutoButtonColor = false
+    btnV.ZIndex = 3; btnV.Parent = card
+    Instance.new("UICorner", btnV).CornerRadius = UDim.new(0,10)
+
+    -- Info bawah
+    local lbInfo = Instance.new("TextLabel")
+    lbInfo.Size = UDim2.new(1,-22,0,18); lbInfo.Position = UDim2.new(0,11,0,192)
+    lbInfo.BackgroundTransparency = 1
+    lbInfo.Text = "🌐 Website: marksanzxmzz.vercel.app  •  Renew +28 jam tiap hari!"
+    lbInfo.TextColor3 = Color3.fromRGB(45,75,130)
+    lbInfo.Font = Enum.Font.Gotham; lbInfo.TextSize = 9
+    lbInfo.ZIndex = 3; lbInfo.Parent = card
+
+    -- Hover
+    btnV.MouseEnter:Connect(function()
+        TweenSvc:Create(btnV,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,125,255)}):Play()
+    end)
+    btnV.MouseLeave:Connect(function()
+        if btnV.BackgroundColor3 ~= Color3.fromRGB(0,140,60) then
+            TweenSvc:Create(btnV,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,100,220)}):Play()
+        end
+    end)
+
+    -- Load key tersimpan
+    local sv = loadSaved()
+    if sv ~= "" then keyBox.Text = sv end
+
+    local busy = false
+
+    local function doVerify()
+        if busy then return end
+        local key = keyBox.Text:gsub("%s+","")
+        if #key < 5 then
+            lbSt.Text = "⚠ Masukkan key dulu!"
+            lbSt.TextColor3 = Color3.fromRGB(255,140,40); return
+        end
+        busy = true
+        btnV.Text = "⏳ Memverifikasi..."; btnV.Active = false
+        lbSt.Text = "🔄 Menghubungi server..."; lbSt.TextColor3 = Color3.fromRGB(80,160,255)
+        TweenSvc:Create(pgFill,TweenInfo.new(2),{Size=UDim2.new(0.82,0,1,0)}):Play()
+
+        -- coroutine agar tidak block
+        coroutine.wrap(function()
+            local ok, msg, data = verifyKey(key)
+
+            if ok then
+                -- Key valid!
+                TweenSvc:Create(pgFill,TweenInfo.new(0.25),{Size=UDim2.new(1,0,1,0)}):Play()
+                pgFill.BackgroundColor3 = Color3.fromRGB(0,220,90)
+                lbSt.Text = "✅ "..msg
+                lbSt.TextColor3 = Color3.fromRGB(0,220,90)
+                btnV.Text = "✅ KEY VALID — Memuat..."
+                btnV.BackgroundColor3 = Color3.fromRGB(0,140,60)
+                saveKey(key)
+                -- Simpan data untuk Info tab
+                if data then _verifyData = data end
+                -- Langsung refresh info tab setelah verify sukses
+                pcall(refreshKeyInfo)
+                task.wait(1.4)
+                pcall(function() sg:Destroy() end)
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification",{
+                        Title="⚡ AWR Key Valid!";
+                        Text="Selamat datang, "..(data and data.username or Players.LocalPlayer.Name).."!";
+                        Duration=4
+                    })
+                end)
+                onValid()  -- ← jalankan script utama
+            else
+                -- Key gagal
+                TweenSvc:Create(pgFill,TweenInfo.new(0.25),{Size=UDim2.new(0.1,0,1,0)}):Play()
+                pgFill.BackgroundColor3 = Color3.fromRGB(220,50,50)
+                lbSt.Text = msg; lbSt.TextColor3 = Color3.fromRGB(255,80,80)
+                btnV.Text = "❌ Gagal — Coba Lagi"
+                btnV.BackgroundColor3 = Color3.fromRGB(160,25,25)
+                task.wait(2.2)
+                if sg.Parent then
+                    btnV.Text = "🔑  VERIFY KEY"
+                    btnV.BackgroundColor3 = Color3.fromRGB(0,100,220)
+                    btnV.Active = true; busy = false
+                    TweenSvc:Create(pgFill,TweenInfo.new(0.35),{Size=UDim2.new(0,0,1,0)}):Play()
+                    task.wait(0.35)
+                    pgFill.BackgroundColor3 = Color3.fromRGB(0,180,255)
+                end
+            end
+        end)()
+    end
+
+    btnV.MouseButton1Click:Connect(doVerify)
+    keyBox.FocusLost:Connect(function(enter) if enter then doVerify() end end)
+
+    -- Animasi slide masuk
+    TweenSvc:Create(card, TweenInfo.new(0.42,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+        {Position = UDim2.new(0.5,0, 0.5,0)}):Play()
+end
+
+-- ── SCRIPT UTAMA — dibungkus function, dipanggil callback ──
+local function loadMainScript()
+
+-- ════════════════ INIT ════════════════
+local UserInputService = game:GetService("UserInputService")
+local RunService       = game:GetService("RunService")
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
+local HttpService      = game:GetService("HttpService")
+
+local player    = Players.LocalPlayer
+local PlayerGui = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui", 10)
+
+local character = player.Character
+local humanoid  = character and character:FindFirstChildOfClass("Humanoid")
+local rootPart  = character and character:FindFirstChild("HumanoidRootPart")
+
+local function refreshCharRefs()
+    character = player.Character
+    if character then
+        humanoid = character:FindFirstChildOfClass("Humanoid")
+        rootPart = character:FindFirstChild("HumanoidRootPart")
+    end
+end
+
+-- Check Drawing support (beberapa executor tidak support)
+local DRAWING_SUPPORTED = false
+pcall(function()
+    local t = Drawing.new("Line")
+    t:Remove()
+    DRAWING_SUPPORTED = true
+end)
+
+-- ════════════════════════════════════════════════
+-- SERIALIZE / DESERIALIZE
+-- ════════════════════════════════════════════════
+local function serializeData(data)
+    local t={}
+    for _,d in ipairs(data) do
+        table.insert(t,{
+            px=d.Position.X, py=d.Position.Y, pz=d.Position.Z,
+            cfx=d.CFrame.X, cfy=d.CFrame.Y, cfz=d.CFrame.Z,
+            time=d.Time, state=d.State,
+            vx=d.Velocity and d.Velocity.X or 0,
+            vy=d.Velocity and d.Velocity.Y or 0,
+            vz=d.Velocity and d.Velocity.Z or 0,
+            ws=d.WalkSpeed or 27,
+        })
+    end
+    return HttpService:JSONEncode(t)
+end
+
+local function deserializeData(json)
+    local t=HttpService:JSONDecode(json)
+    local data={}
+    for _,d in ipairs(t) do
+        table.insert(data,{
+            Position  = Vector3.new(d.px,d.py,d.pz),
+            CFrame    = CFrame.new(d.cfx or d.px, d.cfy or d.py, d.cfz or d.pz),
+            Time      = d.time, State=d.state,
+            Velocity  = Vector3.new(d.vx or 0,d.vy or 0,d.vz or 0),
+            WalkSpeed = d.ws or 27,
+        })
+    end
+    return data
+end
+
+-- ════════════════════════════════════════════════
+-- FILE SAVE
+-- ════════════════════════════════════════════════
+local SAVE_FOLDER = "SanzxmzzWalk/"
+local function ensureSaveFolder()
+    pcall(function() if not isfolder(SAVE_FOLDER) then makefolder(SAVE_FOLDER) end end)
+end
+local function saveToFile(name, data)
+    local ok,json = pcall(serializeData, data)
+    if not ok then return false end
+    -- Pastikan folder ada
+    pcall(function()
+        if not isfolder(SAVE_FOLDER) then makefolder(SAVE_FOLDER) end
+    end)
+    -- Coba berbagai path
+    local saved=false
+    for _,path in ipairs({SAVE_FOLDER..name..".json", "./"..SAVE_FOLDER..name..".json", name..".json"}) do
+        local ok2=pcall(function() writefile(path, json) end)
+        if ok2 then saved=true; break end
+    end
+    return saved
+end
+local function loadFromFile(name)
+    -- Coba berbagai path format
+    local content=nil
+    local tryPaths={
+        SAVE_FOLDER..name..".json",
+        SAVE_FOLDER..name,
+        "./"..SAVE_FOLDER..name..".json",
+        name..".json",
+    }
+    for _,path in ipairs(tryPaths) do
+        local ok,res=pcall(function() return readfile(path) end)
+        if ok and res and #res>2 then content=res; break end
+    end
+    if not content then return nil end
+    local ok2,data = pcall(deserializeData, content)
+    return ok2 and data or nil
+end
+local function listSaveFiles()
+    local files={}
+    -- Coba berbagai path format yang berbeda-beda di tiap executor
+    local tryFolders={SAVE_FOLDER, SAVE_FOLDER:gsub("/$",""), "./"..SAVE_FOLDER, SAVE_FOLDER:lower()}
+    local found=false
+    for _,folder in ipairs(tryFolders) do
+        local ok,result=pcall(function()
+            if not isfolder(folder) then makefolder(folder) end
+            local lst=listfiles(folder)
+            if lst and #lst>=0 then
+                for _,f in ipairs(lst) do
+                    local name=f:match("([^/\\]+)%.json$") or f:match("([^/\\]+)$")
+                    if name then name=name:gsub("%.json$",""); table.insert(files,name) end
+                end
+                found=true
+            end
+        end)
+        if found and #files>=0 then break end
+    end
+    -- Jika listfiles tidak work, coba readdir (beberapa executor pakai ini)
+    if not found then
+        pcall(function()
+            local lst=readdir and readdir(SAVE_FOLDER) or {}
+            for _,f in ipairs(lst) do
+                local name=f:match("([^/\\]+)%.json$") or f:match("([^/\\]+)$")
+                if name then name=name:gsub("%.json$",""); table.insert(files,name) end
+            end
+        end)
+    end
+    table.sort(files)
+    return files
+end
+
+-- ════════════════════════════════════════════════
+-- CORE STATE
+-- ════════════════════════════════════════════════
+local isRecording    = false
+local isPlaying      = false
+local isPaused       = false
+local isEditMode     = false
+local recordedData   = {}
+local editIndex      = 1
+local playbackConn   = nil
+local recordConn     = nil
+local playbackSpeed  = 1.0
+local smoothMovement = true
+local loopPlayback   = false
+local showRoute      = false
+local routeParts     = {}
+local playbackDelay  = 0
+local currentTab     = "Record"
+local autoPlayCount  = 0
+local autoPlayTarget = 0
+local autoRespawn    = false
+local guiLocked      = false
+local editTargetCFrame = nil
+local editSmoothConn   = nil
+local flipEnabled    = false
+local flipConn       = nil
+
+-- ESP
+local espEnabled   = false
+local espLines     = false
+local espNames     = false
+local espHighlight = false
+local espLinePos   = "Top"
+local espBoxEnabled    = false
+local espDistEnabled   = false
+local espAvatarEnabled = false
+local espObjects   = {}
+local espLinePool  = {}
+local espActiveCount = 0
+
+-- WalkToTrack
+local walkToTrackConn  = nil
+local isWalkingToTrack = false
+
+-- ════════════════════════════════════════════════
+-- ESP LINE POOL ( cek DRAWING_SUPPORTED)
+-- ════════════════════════════════════════════════
+local function getPoolLine(idx)
+    if not DRAWING_SUPPORTED then return nil end
+    if not espLinePool[idx] then
+        local ok2, ln = pcall(function() return Drawing.new("Line") end)
+        if ok2 and ln then
+            ln.Visible=false; ln.Color=Color3.fromRGB(255,255,100)
+            ln.Thickness=2.5; ln.Transparency=0.1; ln.ZIndex=5
+            espLinePool[idx]=ln
+        end
+    end
+    return espLinePool[idx]
+end
+local function hidePoolLines(fromIdx)
+    for i=fromIdx,#espLinePool do
+        if espLinePool[i] then pcall(function() espLinePool[i].Visible=false end) end
+    end
+end
+local function clearAllPoolLines()
+    for _,ln in ipairs(espLinePool) do pcall(function() ln.Visible=false end) end
+    espActiveCount=0
+end
+local function destroyPoolLines()
+    for _,ln in ipairs(espLinePool) do pcall(function() ln:Remove() end) end
+    espLinePool={}; espActiveCount=0
+end
+
+-- ════════════════════════════════════════════════
+-- CLEAN OLD GUI
+-- ════════════════════════════════════════════════
+pcall(function()
+    local ex=PlayerGui:FindFirstChild("AWR_GUI")
+    if ex then ex:Destroy() end
+end)
+
+-- ════════════════════════════════════════════════
+-- SCREEN GUI
+-- ════════════════════════════════════════════════
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AWR_GUI"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.DisplayOrder = 100
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = PlayerGui   -- Parent TERAKHIR supaya langsung muncul
+
+-- ════════════════════════════════════════════════
+-- CUSTOM NOTIFICATION SYSTEM
+-- ════════════════════════════════════════════════
+local notifHolder = Instance.new("Frame")
+notifHolder.Name = "_AWR_Notifs"
+notifHolder.Size = UDim2.new(0,270,1,0)
+notifHolder.Position = UDim2.new(1,-280,0,0)
+notifHolder.BackgroundTransparency = 1
+notifHolder.BorderSizePixel = 0
+notifHolder.ZIndex = 999
+notifHolder.Parent = screenGui
+
+do
+    local ul = Instance.new("UIListLayout")
+    ul.SortOrder = Enum.SortOrder.LayoutOrder
+    ul.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    ul.Padding = UDim.new(0,5)
+    ul.Parent = notifHolder
+    local pad = Instance.new("UIPadding")
+    pad.PaddingBottom = UDim.new(0,14)
+    pad.PaddingRight = UDim.new(0,4)
+    pad.Parent = notifHolder
+end
+
+local notifCounter = 0
+local NOTIF_CFG = {
+    success={bg=Color3.fromRGB(8,30,12),  border=Color3.fromRGB(0,220,80),  icon="✓", icol=Color3.fromRGB(0,255,100)},
+    error  ={bg=Color3.fromRGB(30,8,8),   border=Color3.fromRGB(220,40,40), icon="✕", icol=Color3.fromRGB(255,80,80)},
+    warning={bg=Color3.fromRGB(30,22,5),  border=Color3.fromRGB(255,180,0), icon="⚠", icol=Color3.fromRGB(255,200,60)},
+    info   ={bg=Color3.fromRGB(5,16,35),  border=Color3.fromRGB(0,160,255), icon="ℹ", icol=Color3.fromRGB(60,180,255)},
+    rec    ={bg=Color3.fromRGB(30,5,5),   border=Color3.fromRGB(255,40,40), icon="⬤",icol=Color3.fromRGB(255,60,60)},
+    play   ={bg=Color3.fromRGB(5,28,12),  border=Color3.fromRGB(0,200,80),  icon="▶", icol=Color3.fromRGB(0,240,100)},
+}
+
+local function showNotif(title, body, ntype, dur)
+    pcall(function()
+        ntype = ntype or "info"; dur = dur or 3
+        notifCounter = notifCounter + 1
+        local cfg = NOTIF_CFG[ntype] or NOTIF_CFG.info
+
+        local card = Instance.new("Frame")
+        card.Name = "N"..notifCounter
+        card.Size = UDim2.new(1,0,0,52)
+        card.BackgroundColor3 = cfg.bg
+        card.BackgroundTransparency = 0.05
+        card.BorderSizePixel = 0
+        card.ZIndex = 999
+        card.Parent = notifHolder
+        Instance.new("UICorner",card).CornerRadius = UDim.new(0,10)
+
+        local accent=Instance.new("Frame"); accent.Size=UDim2.new(0,3,1,0)
+        accent.BackgroundColor3=cfg.border; accent.BorderSizePixel=0; accent.ZIndex=1000; accent.Parent=card
+        Instance.new("UICorner",accent).CornerRadius=UDim.new(0,10)
+
+        local sk=Instance.new("UIStroke"); sk.Color=cfg.border; sk.Thickness=1.2; sk.Transparency=0.4; sk.Parent=card
+
+        local ibg=Instance.new("Frame"); ibg.Size=UDim2.new(0,26,0,26); ibg.Position=UDim2.new(0,11,0.5,-13)
+        ibg.BackgroundColor3=cfg.border; ibg.BackgroundTransparency=0.75; ibg.BorderSizePixel=0; ibg.ZIndex=1000; ibg.Parent=card
+        Instance.new("UICorner",ibg).CornerRadius=UDim.new(1,0)
+        local il=Instance.new("TextLabel"); il.Size=UDim2.new(1,0,1,0); il.BackgroundTransparency=1
+        il.Text=cfg.icon; il.TextColor3=cfg.icol; il.Font=Enum.Font.GothamBold; il.TextSize=12; il.ZIndex=1001; il.Parent=ibg
+
+        local tl=Instance.new("TextLabel"); tl.Size=UDim2.new(1,-48,0,17); tl.Position=UDim2.new(0,43,0,7)
+        tl.BackgroundTransparency=1; tl.Text=title; tl.TextColor3=Color3.fromRGB(255,255,255)
+        tl.Font=Enum.Font.GothamBold; tl.TextSize=11; tl.TextXAlignment=Enum.TextXAlignment.Left; tl.ZIndex=1000; tl.Parent=card
+
+        local bl=Instance.new("TextLabel"); bl.Size=UDim2.new(1,-48,0,14); bl.Position=UDim2.new(0,43,0,27)
+        bl.BackgroundTransparency=1; bl.Text=body or ""; bl.TextColor3=Color3.fromRGB(150,175,210)
+        bl.Font=Enum.Font.Gotham; bl.TextSize=9; bl.TextXAlignment=Enum.TextXAlignment.Left
+        bl.TextTruncate=Enum.TextTruncate.AtEnd; bl.ZIndex=1000; bl.Parent=card
+
+        local pb=Instance.new("Frame"); pb.Size=UDim2.new(1,-8,0,2); pb.Position=UDim2.new(0,4,1,-3)
+        pb.BackgroundColor3=Color3.fromRGB(30,30,50); pb.BorderSizePixel=0; pb.ZIndex=1000; pb.Parent=card
+        Instance.new("UICorner",pb).CornerRadius=UDim.new(1,0)
+        local pf=Instance.new("Frame"); pf.Size=UDim2.new(1,0,1,0); pf.BackgroundColor3=cfg.border
+        pf.BorderSizePixel=0; pf.ZIndex=1001; pf.Parent=pb
+        Instance.new("UICorner",pf).CornerRadius=UDim.new(1,0)
+
+        card.Position = UDim2.new(1,10,0,0)
+        TweenService:Create(card,TweenInfo.new(0.28,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+            {Position=UDim2.new(0,0,0,0)}):Play()
+        TweenService:Create(pf,TweenInfo.new(dur,Enum.EasingStyle.Linear),
+            {Size=UDim2.new(0,0,1,0)}):Play()
+
+        task.delay(dur, function()
+            pcall(function()
+                TweenService:Create(card,TweenInfo.new(0.22,Enum.EasingStyle.Quad,Enum.EasingDirection.In),
+                    {Position=UDim2.new(1,20,0,0),BackgroundTransparency=1}):Play()
+                task.wait(0.25)
+                if card and card.Parent then card:Destroy() end
+            end)
+        end)
+    end)
+end
+
+local function notify(title, body, dur)
+    local t=(title or ""):lower()
+    local ntype="info"
+    if t:find("⬤") or t:find("rec") then ntype="rec"
+    elseif t:find("▶") or t:find("play") then ntype="play"
+    elseif t:find("⏹") or t:find("stop") or t:find("🗑") or t:find("clear") then ntype="error"
+    elseif t:find("💾") or t:find("saved") or t:find("✅") or t:find("load") then ntype="success"
+    elseif t:find("⚠") or t:find("warn") or t:find("error") then ntype="warning"
+    end
+    showNotif(title, body or "", ntype, dur or 3)
+end
+
+-- [Loading screen dihapus]
+
+-- ════════════════════════════════════════════════
+-- MAIN FRAME
+-- ════════════════════════════════════════════════
+local mainFrame=Instance.new("Frame")
+mainFrame.Name="_AWR_Main"
+mainFrame.Size=UDim2.new(0,280,0,440); mainFrame.Position=UDim2.new(0,8,0.5,-220)
+mainFrame.BackgroundColor3=Color3.fromRGB(6,6,14); mainFrame.BorderSizePixel=0
+mainFrame.Active=true; mainFrame.Draggable=true; mainFrame.ClipsDescendants=false
+mainFrame.BackgroundTransparency=1
+Instance.new("UICorner",mainFrame).CornerRadius=UDim.new(0,12)
+do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,140,255); sk.Thickness=1.2; sk.Transparency=0.45; sk.Parent=mainFrame end
+-- Background image: parent ke screenGui biar gak ke-clip, ikutin posisi mainFrame
+-- BG image di-parent ke screenGui sebelum mainFrame (ZIndex Sibling: earlier = lower)
+-- Background image langsung di dalam mainFrame, ZIndex paling rendah
+local bgImg=Instance.new("ImageLabel")
+bgImg.Name="_AWR_BG"
+bgImg.Image="rbxassetid://14751130291"
+bgImg.ImageTransparency=0.18
+bgImg.ScaleType=Enum.ScaleType.Crop
+bgImg.BackgroundColor3=Color3.fromRGB(6,6,14)
+bgImg.BackgroundTransparency=0
+bgImg.BorderSizePixel=0
+bgImg.Size=UDim2.new(1,0,1,0)   -- full ukuran mainFrame
+bgImg.Position=UDim2.new(0,0,0,0)
+bgImg.ZIndex=1                   -- paling bawah, di belakang semua UI
+bgImg.Parent=mainFrame           -- parent ke mainFrame bukan screenGui
+Instance.new("UICorner",bgImg).CornerRadius=UDim.new(0,12)
+mainFrame.ZIndex=10
+mainFrame.Parent=screenGui
+
+-- Title bar
+local titleBar=Instance.new("Frame"); titleBar.Size=UDim2.new(1,0,0,34)
+titleBar.BackgroundColor3=Color3.fromRGB(0,80,180); titleBar.BackgroundTransparency=0.2; titleBar.BorderSizePixel=0; titleBar.Parent=mainFrame
+do
+    Instance.new("UICorner",titleBar).CornerRadius=UDim.new(0,12)
+    local g=Instance.new("UIGradient"); g.Color=ColorSequence.new{
+        ColorSequenceKeypoint.new(0,Color3.fromRGB(0,155,255)),
+        ColorSequenceKeypoint.new(1,Color3.fromRGB(0,45,150))}; g.Rotation=90; g.Parent=titleBar
+    local fix=Instance.new("Frame"); fix.Size=UDim2.new(1,0,0.5,0); fix.Position=UDim2.new(0,0,0.5,0)
+    fix.BackgroundColor3=Color3.fromRGB(0,45,150); fix.BorderSizePixel=0; fix.Parent=titleBar
+end
+local function mDot(x,col)
+    local d=Instance.new("Frame"); d.Size=UDim2.new(0,7,0,7); d.Position=UDim2.new(0,x,0.5,-3.5)
+    d.BackgroundColor3=col; d.BorderSizePixel=0; d.Parent=titleBar
+    Instance.new("UICorner",d).CornerRadius=UDim.new(1,0)
+end
+mDot(8,Color3.fromRGB(255,70,70)); mDot(18,Color3.fromRGB(255,200,0)); mDot(28,Color3.fromRGB(60,220,80))
+local titleLbl=Instance.new("TextLabel"); titleLbl.Size=UDim2.new(1,-110,1,0); titleLbl.Position=UDim2.new(0,40,0,0)
+titleLbl.BackgroundTransparency=1; titleLbl.Text="AWR v1.4"; titleLbl.TextColor3=Color3.fromRGB(255,255,255)
+titleLbl.Font=Enum.Font.GothamBold; titleLbl.TextSize=10; titleLbl.TextXAlignment=Enum.TextXAlignment.Left; titleLbl.Parent=titleBar
+task.spawn(function()
+    while titleLbl and titleLbl.Parent do
+        TweenService:Create(titleLbl,TweenInfo.new(2,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{TextTransparency=0.4}):Play(); task.wait(2)
+        TweenService:Create(titleLbl,TweenInfo.new(2,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{TextTransparency=0}):Play(); task.wait(2)
+    end
+end)
+
+local function makeHdrBtn(xOff,txt,col)
+    local b=Instance.new("TextButton"); b.Size=UDim2.new(0,21,0,21); b.Position=UDim2.new(1,xOff,0.5,-10.5)
+    b.BackgroundColor3=col; b.Text=txt; b.TextColor3=Color3.fromRGB(255,255,255)
+    b.Font=Enum.Font.GothamBold; b.TextSize=10; b.BorderSizePixel=0; b.Parent=titleBar
+    Instance.new("UICorner",b).CornerRadius=UDim.new(1,0); return b
+end
+local lockBtn=makeHdrBtn(-72,"🔓",Color3.fromRGB(0,120,180))
+local minBtn =makeHdrBtn(-48,"－", Color3.fromRGB(190,140,0))
+local closeBtn=makeHdrBtn(-24,"✕",Color3.fromRGB(200,35,35))
+
+lockBtn.MouseButton1Click:Connect(function()
+    guiLocked=not guiLocked; mainFrame.Draggable=not guiLocked
+    lockBtn.Text=guiLocked and "🔒" or "🔓"
+    lockBtn.BackgroundColor3=guiLocked and Color3.fromRGB(200,100,0) or Color3.fromRGB(0,120,180)
+    notify(guiLocked and "🔒 GUI Locked" or "🔓 GUI Unlocked",guiLocked and "Drag dimatikan" or "Drag aktif",2)
+end)
+
+-- ════════════════════════════════════════════════
+-- TABS
+-- ════════════════════════════════════════════════
+local tabBar=Instance.new("Frame"); tabBar.Size=UDim2.new(1,0,0,26); tabBar.Position=UDim2.new(0,0,0,34)
+tabBar.BackgroundColor3=Color3.fromRGB(8,12,25); tabBar.BackgroundTransparency=0.35; tabBar.BorderSizePixel=0; tabBar.Parent=mainFrame
+local tabLine=Instance.new("Frame"); tabLine.Size=UDim2.new(1/5,0,0,2); tabLine.Position=UDim2.new(0,0,1,-2)
+tabLine.BackgroundColor3=Color3.fromRGB(0,170,255); tabLine.BorderSizePixel=0; tabLine.Parent=tabBar
+
+local function makeTabScroll()
+    local sf=Instance.new("ScrollingFrame"); sf.Size=UDim2.new(1,-4,1,-62); sf.Position=UDim2.new(0,2,0,62)
+    sf.BackgroundTransparency=1; sf.ScrollBarThickness=3; sf.ScrollBarImageColor3=Color3.fromRGB(0,140,255)
+    sf.CanvasSize=UDim2.new(0,0,0,0); sf.AutomaticCanvasSize=Enum.AutomaticSize.Y
+    sf.BorderSizePixel=0; sf.Visible=false; sf.Parent=mainFrame
+    local ul=Instance.new("UIListLayout"); ul.Padding=UDim.new(0,3); ul.HorizontalAlignment=Enum.HorizontalAlignment.Center
+    ul.SortOrder=Enum.SortOrder.LayoutOrder; ul.Parent=sf
+    local pad=Instance.new("UIPadding"); pad.PaddingTop=UDim.new(0,5); pad.PaddingBottom=UDim.new(0,16)
+    pad.PaddingLeft=UDim.new(0,5); pad.PaddingRight=UDim.new(0,5); pad.Parent=sf
+    return sf
+end
+
+local recScroll=makeTabScroll(); local espScroll=makeTabScroll()
+local allScroll=makeTabScroll(); local infoScroll=makeTabScroll()
+local feedScroll=makeTabScroll()
+local tabBtns={}
+local tabScrolls={Record=recScroll,ESP=espScroll,AllMenu=allScroll,Info=infoScroll,Feedback=feedScroll}
+
+local function makeTabBtn(name,icon,idx)
+    local tb=Instance.new("TextButton"); tb.Size=UDim2.new(1/4,0,1,0); tb.Position=UDim2.new((idx-1)/4,0,0,0)
+    tb.BackgroundColor3=Color3.fromRGB(8,12,25); tb.Text=icon; tb.TextColor3=Color3.fromRGB(110,130,165)
+    tb.Font=Enum.Font.GothamSemibold; tb.TextSize=9; tb.BorderSizePixel=0; tb.Parent=tabBar; tabBtns[name]=tb; return tb
+end
+-- 5 tabs: resize each to 1/5
+local function makeTabBtn5(name,icon,idx)
+    local tb=Instance.new("TextButton"); tb.Size=UDim2.new(0.2,0,1,0); tb.Position=UDim2.new((idx-1)*0.2,0,0,0)
+    tb.BackgroundColor3=Color3.fromRGB(8,12,25); tb.Text=icon; tb.TextColor3=Color3.fromRGB(110,130,165)
+    tb.Font=Enum.Font.GothamSemibold; tb.TextSize=8; tb.BorderSizePixel=0; tb.Parent=tabBar; tabBtns[name]=tb; return tb
+end
+local recTabBtn =makeTabBtn5("Record","⬤ Rec",1)
+local espTabBtn =makeTabBtn5("ESP","👁 ESP",2)
+local allTabBtn =makeTabBtn5("AllMenu","☰ Menu",3)
+local infoTabBtn=makeTabBtn5("Info","ℹ Info",4)
+local feedTabBtn=makeTabBtn5("Feedback","💬 Feed",5)
+
+local function switchTab(name)
+    currentTab=name
+    for tN,tB in pairs(tabBtns) do
+        local a=(tN==name); tB.TextColor3=a and Color3.fromRGB(0,200,255) or Color3.fromRGB(110,130,165)
+        tB.BackgroundColor3=a and Color3.fromRGB(0,30,60) or Color3.fromRGB(8,12,25)
+    end
+    local idxMap={Record=0,ESP=1,AllMenu=2,Info=3,Feedback=4}
+    local idx=idxMap[name] or 0
+    TweenService:Create(tabLine,TweenInfo.new(0.18,Enum.EasingStyle.Quad),{Size=UDim2.new(1/5,0,0,2),Position=UDim2.new(idx/5,0,1,-2)}):Play()
+    for tN,sf in pairs(tabScrolls) do sf.Visible=(tN==name) end
+end
+recTabBtn.MouseButton1Click:Connect(function() switchTab("Record") end)
+espTabBtn.MouseButton1Click:Connect(function() switchTab("ESP") end)
+allTabBtn.MouseButton1Click:Connect(function() switchTab("AllMenu") end)
+infoTabBtn.MouseButton1Click:Connect(function() switchTab("Info") end)
+feedTabBtn.MouseButton1Click:Connect(function() switchTab("Feedback") end)
+
+-- ════════════════════════════════════════════════
+-- UI HELPERS
+-- ════════════════════════════════════════════════
+local function mkSec(txt,par)
+    local f=Instance.new("Frame"); f.Size=UDim2.new(1,0,0,13); f.BackgroundTransparency=1; f.Parent=par
+    local l=Instance.new("TextLabel"); l.Size=UDim2.new(1,0,1,0); l.BackgroundTransparency=1; l.Text=txt
+    l.TextColor3=Color3.fromRGB(0,180,255); l.Font=Enum.Font.GothamBold; l.TextSize=8; l.TextXAlignment=Enum.TextXAlignment.Left; l.Parent=f
+    Instance.new("Frame",f).Size,Instance.new("Frame",f).Position=UDim2.new(1,0,0,1),UDim2.new(0,0,1,-1)
+    local ln=f:FindFirstChildOfClass("Frame"); if ln then ln.BackgroundColor3=Color3.fromRGB(0,80,160); ln.BackgroundTransparency=0.4; ln.BorderSizePixel=0 end
+    return f
+end
+
+local function mkBtn(txt,col,par)
+    col=col or Color3.fromRGB(26,26,46)
+    local w=Instance.new("Frame"); w.Size=UDim2.new(1,0,0,24); w.BackgroundTransparency=1; w.Parent=par
+    local b=Instance.new("TextButton"); b.Size=UDim2.new(1,0,1,0); b.BackgroundColor3=col; b.Text=txt
+    b.TextColor3=Color3.fromRGB(255,255,255); b.Font=Enum.Font.GothamSemibold; b.TextSize=11; b.BorderSizePixel=0; b.Parent=w
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,7)
+    b.MouseEnter:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundColor3=col:Lerp(Color3.fromRGB(255,255,255),0.16)}):Play() end)
+    b.MouseLeave:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundColor3=col}):Play() end)
+    return b,w
+end
+
+local function mk2Col(par)
+    local row=Instance.new("Frame"); row.Size=UDim2.new(1,0,0,24); row.BackgroundTransparency=1; row.Parent=par
+    local L=Instance.new("Frame"); L.Size=UDim2.new(0.5,-3,1,0); L.BackgroundTransparency=1; L.Parent=row
+    local R=Instance.new("Frame"); R.Size=UDim2.new(0.5,-3,1,0); R.Position=UDim2.new(0.5,3,0,0); R.BackgroundTransparency=1; R.Parent=row
+    return L,R,row
+end
+
+local function mkToggle(label,default,par,cb)
+    local f=Instance.new("Frame"); f.Size=UDim2.new(1,0,1,0); f.BackgroundColor3=Color3.fromRGB(11,18,32); f.BorderSizePixel=0; f.Parent=par
+    Instance.new("UICorner",f).CornerRadius=UDim.new(0,7)
+    local lbl=Instance.new("TextLabel"); lbl.Size=UDim2.new(1,-32,1,0); lbl.Position=UDim2.new(0,6,0,0)
+    lbl.BackgroundTransparency=1; lbl.Text=label; lbl.TextColor3=Color3.fromRGB(200,210,230)
+    lbl.Font=Enum.Font.Gotham; lbl.TextSize=9; lbl.TextXAlignment=Enum.TextXAlignment.Left; lbl.Parent=f
+    local bg=Instance.new("Frame"); bg.Size=UDim2.new(0,26,0,13); bg.Position=UDim2.new(1,-30,0.5,-6.5)
+    bg.BackgroundColor3=default and Color3.fromRGB(0,140,255) or Color3.fromRGB(45,45,65); bg.BorderSizePixel=0; bg.Parent=f
+    Instance.new("UICorner",bg).CornerRadius=UDim.new(1,0)
+    local knob=Instance.new("Frame"); knob.Size=UDim2.new(0,9,0,9)
+    knob.Position=default and UDim2.new(1,-11,0.5,-4.5) or UDim2.new(0,2,0.5,-4.5)
+    knob.BackgroundColor3=Color3.fromRGB(255,255,255); knob.BorderSizePixel=0; knob.Parent=bg
+    Instance.new("UICorner",knob).CornerRadius=UDim.new(1,0)
+    local tc=Instance.new("TextButton"); tc.Size=UDim2.new(1,0,1,0); tc.BackgroundTransparency=1; tc.Text=""; tc.Parent=f
+    local st=default
+    tc.MouseButton1Click:Connect(function()
+        st=not st
+        TweenService:Create(bg,TweenInfo.new(0.15),{BackgroundColor3=st and Color3.fromRGB(0,140,255) or Color3.fromRGB(45,45,65)}):Play()
+        TweenService:Create(knob,TweenInfo.new(0.15),{Position=st and UDim2.new(1,-11,0.5,-4.5) or UDim2.new(0,2,0.5,-4.5)}):Play()
+        cb(st)
+    end)
+    return f
+end
+
+-- DROPDOWN — FIX: currentVal sebagai closure state, bukan baca dari btn.Text
+local activeDropdown=nil
+local function mkDropdown(labelTxt,options,defaultTxt,par,onChange)
+    local currentVal=defaultTxt   -- ← STATE INTERNAL, tidak tergantung btn.Text
+    local wrapper=Instance.new("Frame"); wrapper.Size=UDim2.new(1,0,0,28); wrapper.BackgroundTransparency=1; wrapper.Parent=par
+    local lbl=Instance.new("TextLabel"); lbl.Size=UDim2.new(0.40,-4,1,0); lbl.BackgroundTransparency=1; lbl.Text=labelTxt
+    lbl.TextColor3=Color3.fromRGB(190,200,220); lbl.Font=Enum.Font.Gotham; lbl.TextSize=9; lbl.TextXAlignment=Enum.TextXAlignment.Left; lbl.Parent=wrapper
+    local btn=Instance.new("TextButton"); btn.Size=UDim2.new(0.60,0,1,0); btn.Position=UDim2.new(0.40,0,0,0)
+    btn.BackgroundColor3=Color3.fromRGB(12,22,44); btn.Text=defaultTxt.." ▾"; btn.TextColor3=Color3.fromRGB(0,200,255)
+    btn.Font=Enum.Font.GothamSemibold; btn.TextSize=10; btn.BorderSizePixel=0; btn.Parent=wrapper
+    Instance.new("UICorner",btn).CornerRadius=UDim.new(0,6)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,80,150); sk.Thickness=1; sk.Parent=btn end
+    btn.MouseButton1Click:Connect(function()
+        if activeDropdown then activeDropdown:Destroy(); activeDropdown=nil end
+        local ITEM_H=24; local MAX_V=7; local totalH=#options*ITEM_H; local visH=math.min(totalH,MAX_V*ITEM_H)
+        local popup=Instance.new("Frame"); popup.Size=UDim2.new(0,155,0,visH+6)
+        popup.BackgroundColor3=Color3.fromRGB(8,16,36); popup.BorderSizePixel=0; popup.ZIndex=200
+        Instance.new("UICorner",popup).CornerRadius=UDim.new(0,8)
+        do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,100,200); sk.Thickness=1; sk.Parent=popup end
+        local sf=Instance.new("ScrollingFrame"); sf.Size=UDim2.new(1,0,1,0); sf.BackgroundTransparency=1
+        sf.ScrollBarThickness=3; sf.ScrollBarImageColor3=Color3.fromRGB(0,140,255)
+        sf.CanvasSize=UDim2.new(0,0,0,totalH+6); sf.BorderSizePixel=0; sf.ZIndex=200; sf.Parent=popup
+        local ul=Instance.new("UIListLayout"); ul.Padding=UDim.new(0,1); ul.SortOrder=Enum.SortOrder.LayoutOrder; ul.Parent=sf
+        local pad2=Instance.new("UIPadding"); pad2.PaddingTop=UDim.new(0,3); pad2.PaddingLeft=UDim.new(0,3); pad2.PaddingRight=UDim.new(0,3); pad2.Parent=sf
+        for i,opt in ipairs(options) do
+            local isSel=(opt==currentVal)
+            local ob=Instance.new("TextButton"); ob.Size=UDim2.new(1,0,0,ITEM_H-2); ob.LayoutOrder=i
+            ob.BackgroundColor3=isSel and Color3.fromRGB(0,60,130) or Color3.fromRGB(14,26,52)
+            ob.Text=tostring(opt); ob.TextColor3=isSel and Color3.fromRGB(0,230,255) or Color3.fromRGB(200,215,240)
+            ob.Font=Enum.Font.Gotham; ob.TextSize=10; ob.BorderSizePixel=0; ob.ZIndex=200; ob.Parent=sf
+            Instance.new("UICorner",ob).CornerRadius=UDim.new(0,5)
+            ob.MouseButton1Click:Connect(function()
+                currentVal=opt          -- UPDATE STATE INTERNAL
+                btn.Text=tostring(opt).." ▾"
+                onChange(opt)
+                popup:Destroy(); activeDropdown=nil
+            end)
+            ob.MouseEnter:Connect(function() if not isSel then ob.BackgroundColor3=Color3.fromRGB(0,45,90) end end)
+            ob.MouseLeave:Connect(function() if not isSel then ob.BackgroundColor3=Color3.fromRGB(14,26,52) end end)
+        end
+        local absY=btn.AbsolutePosition.Y+btn.AbsoluteSize.Y+4; local absX=btn.AbsolutePosition.X
+        if absY+visH+6>screenGui.AbsoluteSize.Y then absY=btn.AbsolutePosition.Y-(visH+6)-4 end
+        popup.Position=UDim2.new(0,absX,0,absY); popup.Parent=screenGui; activeDropdown=popup
+        local cc; cc=UserInputService.InputBegan:Connect(function(inp)
+            if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+                task.delay(0.15,function()
+                    if activeDropdown~=popup then cc:Disconnect(); return end
+                    local mp=UserInputService:GetMouseLocation(); local pp=popup.AbsolutePosition; local ps=popup.AbsoluteSize
+                    if not(mp.X>=pp.X and mp.X<=pp.X+ps.X and mp.Y>=pp.Y and mp.Y<=pp.Y+ps.Y) then
+                        if activeDropdown==popup then popup:Destroy(); activeDropdown=nil end
+                        cc:Disconnect()
+                    end
+                end)
+            end
+        end)    end)
+    return wrapper,btn
+end
+
+-- ════════════════════════════════════════════════
+-- RECORD TAB CONTENT
+-- ════════════════════════════════════════════════
+local pulseConn=nil
+local function updateStatus(title,desc,col,dotCol,pulse)
+    
+end
+
+mkSec("◉  STATUS",recScroll)
+local statusPanel=Instance.new("Frame"); statusPanel.Size=UDim2.new(1,0,0,44)
+statusPanel.BackgroundColor3=Color3.fromRGB(11,18,32); statusPanel.BorderSizePixel=0; statusPanel.Parent=recScroll
+Instance.new("UICorner",statusPanel).CornerRadius=UDim.new(0,8)
+do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,90,160); sk.Thickness=1; sk.Transparency=0.5; sk.Parent=statusPanel end
+local sDot=Instance.new("Frame"); sDot.Size=UDim2.new(0,7,0,7); sDot.Position=UDim2.new(0,7,0,7)
+sDot.BackgroundColor3=Color3.fromRGB(80,80,80); sDot.BorderSizePixel=0; sDot.Parent=statusPanel
+Instance.new("UICorner",sDot).CornerRadius=UDim.new(1,0)
+local sTitle=Instance.new("TextLabel"); sTitle.Size=UDim2.new(1,-22,0,16); sTitle.Position=UDim2.new(0,20,0,3)
+sTitle.BackgroundTransparency=1; sTitle.Text="Idle — Ready"; sTitle.TextColor3=Color3.fromRGB(255,255,255)
+sTitle.Font=Enum.Font.GothamBold; sTitle.TextSize=11; sTitle.TextXAlignment=Enum.TextXAlignment.Left; sTitle.Parent=statusPanel
+local sDesc=Instance.new("TextLabel"); sDesc.Size=UDim2.new(1,-12,0,12); sDesc.Position=UDim2.new(0,7,0,18)
+sDesc.BackgroundTransparency=1; sDesc.Text="Buka Recording Panel atau tombol Play"
+sDesc.TextColor3=Color3.fromRGB(130,155,185); sDesc.Font=Enum.Font.Gotham; sDesc.TextSize=9; sDesc.TextXAlignment=Enum.TextXAlignment.Left; sDesc.Parent=statusPanel
+local sPoints=Instance.new("TextLabel"); sPoints.Size=UDim2.new(1,-12,0,11); sPoints.Position=UDim2.new(0,7,0,31)
+sPoints.BackgroundTransparency=1; sPoints.Text="📍 0 poin  |  🕐 0.0s  |  🏃 Idle"
+sPoints.TextColor3=Color3.fromRGB(0,180,255); sPoints.Font=Enum.Font.Gotham; sPoints.TextSize=8; sPoints.TextXAlignment=Enum.TextXAlignment.Left; sPoints.Parent=statusPanel
+
+
+updateStatus=function(title,desc,col,dotCol,pulse2)
+    sTitle.Text=title; sDesc.Text=desc or ""
+    sTitle.TextColor3=col or Color3.fromRGB(255,255,255)
+    sDot.BackgroundColor3=dotCol or Color3.fromRGB(80,80,80); sDot.BackgroundTransparency=0
+    if pulseConn then pulseConn:Disconnect(); pulseConn=nil end
+    if pulse2 then pulseConn=RunService.Heartbeat:Connect(function() sDot.BackgroundTransparency=math.abs(math.sin(tick()*3))*0.5+0.1 end) end
+end
+
+local function updatePointsLabel()
+    local total=0; for _,d in ipairs(recordedData) do total=total+(d.Time or 0) end
+    local last=#recordedData>0 and recordedData[#recordedData].State or "—"
+    sPoints.Text=string.format("📍 %d poin  |  🕐 %.1fs  |  🏃 %s",#recordedData,total,last)
+end
+
+local animBarF=Instance.new("Frame"); animBarF.Size=UDim2.new(1,0,0,14); animBarF.BackgroundColor3=Color3.fromRGB(11,18,32); animBarF.BorderSizePixel=0; animBarF.Parent=recScroll
+Instance.new("UICorner",animBarF).CornerRadius=UDim.new(0,6)
+local animLbl=Instance.new("TextLabel"); animLbl.Size=UDim2.new(1,-8,1,0); animLbl.Position=UDim2.new(0,4,0,0)
+animLbl.BackgroundTransparency=1; animLbl.Text="State: — | —"; animLbl.TextColor3=Color3.fromRGB(100,200,100)
+animLbl.Font=Enum.Font.Gotham; animLbl.TextSize=8; animLbl.TextXAlignment=Enum.TextXAlignment.Left; animLbl.Parent=animBarF
+
+mkSec("🚀  PANEL",recScroll)
+local openRecBtn,_=mkBtn("⬤  Open Recording Panel",Color3.fromRGB(155,25,25),recScroll)
+
+mkSec("▶  PLAYBACK",recScroll)
+local playStatusPanel=Instance.new("Frame"); playStatusPanel.Size=UDim2.new(1,0,0,18); playStatusPanel.BackgroundColor3=Color3.fromRGB(8,22,8); playStatusPanel.BorderSizePixel=0; playStatusPanel.Parent=recScroll
+Instance.new("UICorner",playStatusPanel).CornerRadius=UDim.new(0,6)
+do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,150,60); sk.Thickness=1; sk.Transparency=0.5; sk.Parent=playStatusPanel end
+local playStatusLbl=Instance.new("TextLabel"); playStatusLbl.Size=UDim2.new(1,-8,1,0); playStatusLbl.Position=UDim2.new(0,4,0,0)
+playStatusLbl.BackgroundTransparency=1; playStatusLbl.Text="● Idle | 0 poin"
+playStatusLbl.TextColor3=Color3.fromRGB(100,200,100); playStatusLbl.Font=Enum.Font.GothamBold
+playStatusLbl.TextSize=9; playStatusLbl.TextXAlignment=Enum.TextXAlignment.Left; playStatusLbl.Parent=playStatusPanel
+
+local apRow=Instance.new("Frame"); apRow.Size=UDim2.new(1,0,0,24); apRow.BackgroundTransparency=1; apRow.Parent=recScroll
+local apLbl=Instance.new("TextLabel"); apLbl.Size=UDim2.new(0.42,0,1,0); apLbl.BackgroundTransparency=1; apLbl.Text="🔂 AutoPlay:"
+apLbl.TextColor3=Color3.fromRGB(180,220,180); apLbl.Font=Enum.Font.GothamBold; apLbl.TextSize=9; apLbl.TextXAlignment=Enum.TextXAlignment.Left; apLbl.Parent=apRow
+local apBox=Instance.new("TextBox"); apBox.Size=UDim2.new(0.28,0,1,0); apBox.Position=UDim2.new(0.42,2,0,0)
+apBox.BackgroundColor3=Color3.fromRGB(5,20,10); apBox.Text="1"; apBox.TextColor3=Color3.fromRGB(200,255,200)
+apBox.Font=Enum.Font.Gotham; apBox.TextSize=10; apBox.ClearTextOnFocus=false; apBox.BorderSizePixel=0; apBox.Parent=apRow
+Instance.new("UICorner",apBox).CornerRadius=UDim.new(0,5)
+local apGo=Instance.new("TextButton"); apGo.Size=UDim2.new(0.30,-4,1,0); apGo.Position=UDim2.new(0.70,2,0,0)
+apGo.BackgroundColor3=Color3.fromRGB(0,100,50); apGo.Text="▶ GO"; apGo.TextColor3=Color3.fromRGB(180,255,180)
+apGo.Font=Enum.Font.GothamBold; apGo.TextSize=9; apGo.BorderSizePixel=0; apGo.Parent=apRow
+Instance.new("UICorner",apGo).CornerRadius=UDim.new(0,5)
+apGo.MouseEnter:Connect(function() TweenService:Create(apGo,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,150,80)}):Play() end)
+apGo.MouseLeave:Connect(function() TweenService:Create(apGo,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,100,50)}):Play() end)
+
+local arRow=Instance.new("Frame"); arRow.Size=UDim2.new(1,0,0,24); arRow.BackgroundTransparency=1; arRow.Parent=recScroll
+mkToggle("♻ AutoRespawn",false,arRow,function(v) autoRespawn=v; notify(v and "♻ AutoRespawn ON" or "♻ AutoRespawn OFF","",2) end)
+local loopRow=Instance.new("Frame"); loopRow.Size=UDim2.new(1,0,0,24); loopRow.BackgroundTransparency=1; loopRow.Parent=recScroll
+mkToggle("Loop Playback",false,loopRow,function(v) loopPlayback=v end)
+local smoothRow=Instance.new("Frame"); smoothRow.Size=UDim2.new(1,0,0,24); smoothRow.BackgroundTransparency=1; smoothRow.Parent=recScroll
+mkToggle("Smooth Movement",true,smoothRow,function(v) smoothMovement=v end)
+
+mkSec("🎮  PLAYBACK WALK",recScroll)
+local openGlowBtn,_=mkBtn("🎮  Open Playback Panel",Color3.fromRGB(80,10,10),recScroll)
+
+-- ════════════════════════════════════════════════
+-- ESP TAB
+-- ════════════════════════════════════════════════
+mkSec("ESP MENU",espScroll)
+local espRow=Instance.new("Frame"); espRow.Size=UDim2.new(1,0,0,28); espRow.BackgroundTransparency=1; espRow.Parent=espScroll
+mkToggle("Enable ESP",false,espRow,function(v)
+    espEnabled=v; if not v then clearAllPoolLines(); cleanAllESPBillboards() end
+    pcall(function()
+        for _,obj in pairs(espObjects) do pcall(function() obj:Destroy() end) end; espObjects={}
+        if not espEnabled then return end
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p~=player and p.Character then
+                local ch=p.Character; local root=ch:FindFirstChild("HumanoidRootPart"); if not root then continue end
+                if espHighlight and not ch:FindFirstChild("_AWR_HL") then
+                    local hl=Instance.new("Highlight"); hl.Name="_AWR_HL"; hl.FillColor=Color3.fromRGB(255,255,200)
+                    hl.OutlineColor=Color3.fromRGB(255,230,100); hl.FillTransparency=0.5; hl.Parent=ch; table.insert(espObjects,hl)
+                end
+            end
+        end
+    end)
+end)
+local lE1,rE1=mk2Col(espScroll)
+mkToggle("Names",false,lE1,function(v) espNames=v; if not v then cleanAllESPBillboards() end end)
+mkToggle("Highlight",false,rE1,function(v) espHighlight=v end)
+local lE2,rE2=mk2Col(espScroll)
+mkToggle("Lines",false,lE2,function(v)
+    espLines=v; if not v then clearAllPoolLines() end
+    if v and not DRAWING_SUPPORTED then notify("⚠ Warning","Drawing tidak support di executor ini",3) end
+end)
+mkToggle("Box",false,rE2,function(v) espBoxEnabled=v end)
+local lE3,rE3=mk2Col(espScroll)
+mkToggle("Distance",false,lE3,function(v) espDistEnabled=v end)
+mkToggle("Avatar Circle",false,rE3,function(v) espAvatarEnabled=v end)
+mkSec("  LINE POSITION",espScroll)
+do
+    local lpRow=Instance.new("Frame"); lpRow.Size=UDim2.new(1,-8,0,26); lpRow.Position=UDim2.new(0,4,0,0); lpRow.BackgroundTransparency=1; lpRow.Parent=espScroll
+    local lpBtns={}; local lpActive=Color3.fromRGB(0,140,255); local lpInactive=Color3.fromRGB(18,28,50)
+    for i,pos in ipairs({"Top","Center","Bottom"}) do
+        local b=Instance.new("TextButton"); b.Size=UDim2.new(1/3,-3,1,0); b.Position=UDim2.new((i-1)/3,i==1 and 0 or 2,0,0)
+        b.BackgroundColor3=(pos=="Top") and lpActive or lpInactive
+        b.Text=pos; b.TextColor3=Color3.fromRGB(255,255,255); b.Font=Enum.Font.GothamBold; b.TextSize=9; b.BorderSizePixel=0; b.Parent=lpRow
+        Instance.new("UICorner",b).CornerRadius=UDim.new(0,6); lpBtns[pos]=b
+        b.MouseButton1Click:Connect(function()
+            espLinePos=pos
+            for _,pb in pairs(lpBtns) do pb.BackgroundColor3=lpInactive end
+            b.BackgroundColor3=lpActive; notify("ESP Line","Pos: "..pos,1)
+        end)
+    end
+end
+
+-- ════════════════════════════════════════════════
+-- ALL MENU TAB
+-- ════════════════════════════════════════════════
+mkSec("⬆ INFINITE JUMP",allScroll)
+local ijPanel=Instance.new("Frame"); ijPanel.Size=UDim2.new(1,0,0,100); ijPanel.BackgroundColor3=Color3.fromRGB(11,18,32); ijPanel.BorderSizePixel=0; ijPanel.Parent=allScroll
+Instance.new("UICorner",ijPanel).CornerRadius=UDim.new(0,8)
+do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(255,165,0); sk.Thickness=1; sk.Transparency=0.5; sk.Parent=ijPanel end
+
+local ijTogRow=Instance.new("Frame"); ijTogRow.Size=UDim2.new(1,-12,0,26); ijTogRow.Position=UDim2.new(0,6,0,5); ijTogRow.BackgroundTransparency=1; ijTogRow.Parent=ijPanel
+
+local infiniteJumpEnabled=false; local infiniteJumpPower=27; local infiniteJumpConn=nil
+local function setInfiniteJump(en)
+    infiniteJumpEnabled=en
+    if infiniteJumpConn then infiniteJumpConn:Disconnect(); infiniteJumpConn=nil end
+    if not en then return end
+    infiniteJumpConn=UserInputService.JumpRequest:Connect(function()
+        local ch=player.Character; if not ch then return end
+        local hm=ch:FindFirstChildOfClass("Humanoid"); local rp=ch:FindFirstChild("HumanoidRootPart")
+        if not hm or not rp then return end
+        if hm:GetState()==Enum.HumanoidStateType.Dead then return end
+        hm:ChangeState(Enum.HumanoidStateType.Jumping)
+        local bv=Instance.new("BodyVelocity"); bv.Velocity=Vector3.new(0,infiniteJumpPower,0)
+        bv.MaxForce=Vector3.new(0,1e6,0); bv.P=1e5; bv.Parent=rp
+        game:GetService("Debris"):AddItem(bv,0.1)
+    end)
+end
+mkToggle("⬆ Infinite Jump",false,ijTogRow,function(v) setInfiniteJump(v); notify(v and "🦘 Infinite Jump ON" or "🦘 Infinite Jump OFF","",2) end)
+
+-- Jump Power dengan tombol -/+
+local ijPR=Instance.new("Frame"); ijPR.Size=UDim2.new(1,-12,0,30); ijPR.Position=UDim2.new(0,6,0,34); ijPR.BackgroundTransparency=1; ijPR.Parent=ijPanel
+local ijPLbl=Instance.new("TextLabel"); ijPLbl.Size=UDim2.new(0.38,0,1,0); ijPLbl.BackgroundTransparency=1; ijPLbl.Text="⚡ Power:"; ijPLbl.TextColor3=Color3.fromRGB(200,210,230); ijPLbl.Font=Enum.Font.Gotham; ijPLbl.TextSize=9; ijPLbl.TextXAlignment=Enum.TextXAlignment.Left; ijPLbl.Parent=ijPR
+-- Minus button
+local ijMinus=Instance.new("TextButton"); ijMinus.Size=UDim2.new(0,24,0,24); ijMinus.Position=UDim2.new(0.38,0,0.5,-12)
+ijMinus.BackgroundColor3=Color3.fromRGB(120,30,0); ijMinus.Text="−"; ijMinus.TextColor3=Color3.fromRGB(255,180,100)
+ijMinus.Font=Enum.Font.GothamBold; ijMinus.TextSize=14; ijMinus.BorderSizePixel=0; ijMinus.Parent=ijPR
+Instance.new("UICorner",ijMinus).CornerRadius=UDim.new(0,6)
+-- Value label
+local ijValLbl=Instance.new("TextLabel"); ijValLbl.Size=UDim2.new(0,40,0,24); ijValLbl.Position=UDim2.new(0.38,26,0.5,-12)
+ijValLbl.BackgroundColor3=Color3.fromRGB(12,20,40); ijValLbl.Text="27"; ijValLbl.TextColor3=Color3.fromRGB(255,200,80)
+ijValLbl.Font=Enum.Font.GothamBold; ijValLbl.TextSize=11; ijValLbl.BorderSizePixel=0; ijValLbl.Parent=ijPR
+Instance.new("UICorner",ijValLbl).CornerRadius=UDim.new(0,5)
+do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(255,165,0); sk.Thickness=1; sk.Parent=ijValLbl end
+-- Plus button
+local ijPlus=Instance.new("TextButton"); ijPlus.Size=UDim2.new(0,24,0,24); ijPlus.Position=UDim2.new(0.38,68,0.5,-12)
+ijPlus.BackgroundColor3=Color3.fromRGB(0,100,30); ijPlus.Text="+"; ijPlus.TextColor3=Color3.fromRGB(100,255,140)
+ijPlus.Font=Enum.Font.GothamBold; ijPlus.TextSize=14; ijPlus.BorderSizePixel=0; ijPlus.Parent=ijPR
+Instance.new("UICorner",ijPlus).CornerRadius=UDim.new(0,6)
+-- Step selector row
+local ijStepRow=Instance.new("Frame"); ijStepRow.Size=UDim2.new(1,-12,0,22); ijStepRow.Position=UDim2.new(0,6,0,68); ijStepRow.BackgroundTransparency=1; ijStepRow.Parent=ijPanel
+local ijStep=5; local ijStepLbl=Instance.new("TextLabel"); ijStepLbl.Size=UDim2.new(0.38,0,1,0); ijStepLbl.BackgroundTransparency=1; ijStepLbl.Text="Step: ±"..ijStep; ijStepLbl.TextColor3=Color3.fromRGB(160,180,200); ijStepLbl.Font=Enum.Font.Gotham; ijStepLbl.TextSize=8; ijStepLbl.TextXAlignment=Enum.TextXAlignment.Left; ijStepLbl.Parent=ijStepRow
+local stepBtns={"1","5","10","25"}; local stepVals={1,5,10,25}
+for si,sv in ipairs(stepVals) do
+    local sb=Instance.new("TextButton"); sb.Size=UDim2.new(0.155,0,1,0); sb.Position=UDim2.new(0.38+(si-1)*0.155,1,0,0)
+    sb.BackgroundColor3=(sv==ijStep) and Color3.fromRGB(0,80,160) or Color3.fromRGB(18,28,50)
+    sb.Text=stepBtns[si]; sb.TextColor3=Color3.fromRGB(180,220,255); sb.Font=Enum.Font.GothamBold; sb.TextSize=8; sb.BorderSizePixel=0; sb.Parent=ijStepRow
+    Instance.new("UICorner",sb).CornerRadius=UDim.new(0,4)
+    sb.MouseButton1Click:Connect(function()
+        ijStep=sv; ijStepLbl.Text="Step: ±"..ijStep
+        for _,s2 in ipairs(ijStepRow:GetChildren()) do if s2:IsA("TextButton") then
+            s2.BackgroundColor3=(s2.Text==tostring(sv)) and Color3.fromRGB(0,80,160) or Color3.fromRGB(18,28,50)
+        end end
+    end)
+end
+-- Minus/Plus logic
+ijMinus.MouseButton1Click:Connect(function()
+    infiniteJumpPower=math.max(1,infiniteJumpPower-ijStep); ijValLbl.Text=tostring(infiniteJumpPower)
+    notify("🦘 Power","−"..ijStep.." → "..infiniteJumpPower,1)
+end)
+ijPlus.MouseButton1Click:Connect(function()
+    infiniteJumpPower=math.min(500,infiniteJumpPower+ijStep); ijValLbl.Text=tostring(infiniteJumpPower)
+    notify("🦘 Power","+"..ijStep.." → "..infiniteJumpPower,1)
+end)
+
+-- ════════════════════════════════════════════════
+-- INFO TAB
+-- ════════════════════════════════════════════════
+mkSec("ℹ  INFO",infoScroll)
+local infoPanel=Instance.new("Frame"); infoPanel.Size=UDim2.new(1,0,0,90); infoPanel.BackgroundColor3=Color3.fromRGB(6,12,28); infoPanel.BorderSizePixel=0; infoPanel.Parent=infoScroll
+Instance.new("UICorner",infoPanel).CornerRadius=UDim.new(0,10)
+do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,120,255); sk.Thickness=1.5; sk.Transparency=0.3; sk.Parent=infoPanel end
+local il1=Instance.new("TextLabel"); il1.Size=UDim2.new(1,-14,0,20); il1.Position=UDim2.new(0,7,0,7); il1.BackgroundTransparency=1; il1.Text="Developer : Sanzxmzz"; il1.TextColor3=Color3.fromRGB(0,200,255); il1.Font=Enum.Font.GothamBold; il1.TextSize=13; il1.TextXAlignment=Enum.TextXAlignment.Left; il1.Parent=infoPanel
+local il2=Instance.new("TextLabel"); il2.Size=UDim2.new(1,-14,0,16); il2.Position=UDim2.new(0,7,0,28); il2.BackgroundTransparency=1; il2.Text="Version : v1.4 | Key System v4"; il2.TextColor3=Color3.fromRGB(255,255,255); il2.Font=Enum.Font.GothamBold; il2.TextSize=11; il2.TextXAlignment=Enum.TextXAlignment.Left; il2.Parent=infoPanel
+local il3=Instance.new("TextLabel"); il3.Size=UDim2.new(1,-14,0,40); il3.Position=UDim2.new(0,7,0,46); il3.BackgroundTransparency=1; il3.Text="Script 100% FREE\nJangan dijual!"; il3.TextColor3=Color3.fromRGB(200,200,200); il3.Font=Enum.Font.GothamBold; il3.TextSize=9; il3.TextXAlignment=Enum.TextXAlignment.Left; il3.TextWrapped=true; il3.Parent=infoPanel
+
+-- KEY INFO SECTION
+mkSec("🗝  KEY INFO",infoScroll)
+local keyInfoPanel=Instance.new("Frame"); keyInfoPanel.Size=UDim2.new(1,0,0,80); keyInfoPanel.BackgroundColor3=Color3.fromRGB(4,14,8); keyInfoPanel.BorderSizePixel=0; keyInfoPanel.Parent=infoScroll
+Instance.new("UICorner",keyInfoPanel).CornerRadius=UDim.new(0,10)
+do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,200,80); sk.Thickness=1.2; sk.Transparency=0.4; sk.Parent=keyInfoPanel end
+local kiUsername=Instance.new("TextLabel"); kiUsername.Size=UDim2.new(1,-14,0,18); kiUsername.Position=UDim2.new(0,7,0,6); kiUsername.BackgroundTransparency=1; kiUsername.Text="👤 Username  : —"; kiUsername.TextColor3=Color3.fromRGB(0,220,100); kiUsername.Font=Enum.Font.GothamBold; kiUsername.TextSize=10; kiUsername.TextXAlignment=Enum.TextXAlignment.Left; kiUsername.Parent=keyInfoPanel
+local kiExpired=Instance.new("TextLabel"); kiExpired.Size=UDim2.new(1,-14,0,18); kiExpired.Position=UDim2.new(0,7,0,26); kiExpired.BackgroundTransparency=1; kiExpired.Text="⏳ Expired Key : —"; kiExpired.TextColor3=Color3.fromRGB(255,200,60); kiExpired.Font=Enum.Font.GothamBold; kiExpired.TextSize=10; kiExpired.TextXAlignment=Enum.TextXAlignment.Left; kiExpired.Parent=keyInfoPanel
+local kiTier=Instance.new("TextLabel"); kiTier.Size=UDim2.new(1,-14,0,18); kiTier.Position=UDim2.new(0,7,0,46); kiTier.BackgroundTransparency=1; kiTier.Text="👑 Tier         : —"; kiTier.TextColor3=Color3.fromRGB(180,140,255); kiTier.Font=Enum.Font.GothamBold; kiTier.TextSize=10; kiTier.TextXAlignment=Enum.TextXAlignment.Left; kiTier.Parent=keyInfoPanel
+local kiRenew=Instance.new("TextLabel"); kiRenew.Size=UDim2.new(1,-14,0,14); kiRenew.Position=UDim2.new(0,7,0,63); kiRenew.BackgroundTransparency=1; kiRenew.Text="🌐 Renew gratis tiap hari di: marksanzxmzz.vercel.app"; kiRenew.TextColor3=Color3.fromRGB(60,120,200); kiRenew.Font=Enum.Font.Gotham; kiRenew.TextSize=8; kiRenew.TextXAlignment=Enum.TextXAlignment.Left; kiRenew.Parent=keyInfoPanel
+-- Fungsi update key info dari verify global data
+local function refreshKeyInfo()
+    if not _verifyData or not _verifyData.success then return end
+    pcall(function()
+        -- Username
+        kiUsername.Text="👤 Username  : "..(_verifyData.username or "—")
+
+        -- Format expired_at dari ISO string jadi readable
+        local expStr = "—"
+        if _verifyData.expires_at then
+            -- ISO: "2025-01-30T12:00:00.000Z" → "30 Jan 2025, 12:00"
+            local y,mo,d,h,mi = tostring(_verifyData.expires_at):match("(%d+)-(%d+)-(%d+)T(%d+):(%d+)")
+            local months={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"}
+            if y then
+                local mName = months[tonumber(mo)] or mo
+                expStr = d.." "..mName.." "..y..", "..h..":"..mi
+                -- Cek apakah sudah expired
+                local nowStr = os.date("!%Y-%m-%dT%H:%M:%S")
+                if _verifyData.expires_at < nowStr then
+                    expStr = expStr.." (EXPIRED)"
+                end
+            else
+                expStr = tostring(_verifyData.expires_at)
+            end
+        elseif _verifyData.duration_type == "lifetime" then
+            expStr = "∞ Lifetime (Tidak Expired)"
+        end
+        kiExpired.Text="⏳ Expired Key : "..expStr
+
+        -- Tier dari duration_type
+        local dur = _verifyData.duration_type or "24h"
+        local tierStr
+        if dur == "lifetime" then tierStr = "LIFETIME"
+        elseif dur == "30d" or dur == "60d" then tierStr = "PREMIUM"
+        elseif dur == "7d" or dur == "5d" then tierStr = "STANDARD"
+        else tierStr = "FREE ("..dur..")" end
+        kiTier.Text="👑 Tier         : "..tierStr
+        local tierColor = (dur=="lifetime") and Color3.fromRGB(255,214,10)
+            or (dur=="30d" or dur=="60d") and Color3.fromRGB(180,120,255)
+            or Color3.fromRGB(0,200,255)
+        kiTier.TextColor3=tierColor
+    end)
+end
+-- Refresh langsung saat load, lalu tiap 30 detik
+pcall(refreshKeyInfo)
+coroutine.wrap(function() while true do task.wait(30); pcall(refreshKeyInfo) end end)()
+
+-- WhatsApp button
+do
+    local waRow=Instance.new("Frame"); waRow.Size=UDim2.new(1,0,0,36); waRow.BackgroundTransparency=1; waRow.Parent=infoScroll
+    local waBtn=Instance.new("TextButton"); waBtn.Size=UDim2.new(1,0,1,0); waBtn.BackgroundColor3=Color3.fromRGB(18,80,30); waBtn.Text="📱 WhatsApp Sanzxmzz"; waBtn.TextColor3=Color3.fromRGB(100,255,120); waBtn.Font=Enum.Font.GothamBold; waBtn.TextSize=12; waBtn.BorderSizePixel=0; waBtn.Parent=waRow
+    Instance.new("UICorner",waBtn).CornerRadius=UDim.new(0,10)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,220,80); sk.Thickness=1.5; sk.Transparency=0.3; sk.Parent=waBtn end
+    waBtn.MouseButton1Click:Connect(function()
+        notify("📱 WhatsApp","Link: wa.me/6281234567890",4)
+        -- setclipboard kalau executor support
+        pcall(function() setclipboard("https://wa.me/6281234567890") end)
+    end)
+    waBtn.MouseEnter:Connect(function() TweenService:Create(waBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(25,110,40)}):Play() end)
+    waBtn.MouseLeave:Connect(function() TweenService:Create(waBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(18,80,30)}):Play() end)
+end
+mkSec("📊  STATS",infoScroll)
+local statsPanel=Instance.new("Frame"); statsPanel.Size=UDim2.new(1,0,0,84); statsPanel.BackgroundColor3=Color3.fromRGB(8,14,28); statsPanel.BorderSizePixel=0; statsPanel.Parent=infoScroll
+Instance.new("UICorner",statsPanel).CornerRadius=UDim.new(0,8)
+local statLbls={}
+local statDefs={{"Total Points","0"},{"Duration","0.0s"},{"Status","Idle"},{"AutoPlay","Off"}}
+for i,def in ipairs(statDefs) do
+    local rl=Instance.new("TextLabel"); rl.Size=UDim2.new(1,-14,0,18); rl.Position=UDim2.new(0,7,0,(i-1)*18+5)
+    rl.BackgroundTransparency=1; rl.Text=def[1]..": "..def[2]
+    rl.TextColor3=(i%2==0) and Color3.fromRGB(200,220,255) or Color3.fromRGB(0,180,255)
+    rl.Font=Enum.Font.Gotham; rl.TextSize=9; rl.TextXAlignment=Enum.TextXAlignment.Left; rl.Parent=statsPanel; statLbls[i]=rl
+end
+local function updateStats()
+    local total=0; for _,d in ipairs(recordedData) do total=total+(d.Time or 0) end
+    statLbls[1].Text="Total Points: "..#recordedData
+    statLbls[2].Text="Duration: "..string.format("%.1fs",total)
+    statLbls[3].Text="Status: "..(isRecording and "⬤ Rec" or isPlaying and "▶ Play" or "Idle")
+    statLbls[4].Text="AutoPlay: "..(autoPlayTarget>0 and autoPlayCount.."/"..autoPlayTarget or "Off")
+end
+
+-- ════════════════════════════════════════════════
+-- FEEDBACK TAB
+-- ════════════════════════════════════════════════
+do
+    -- API Website AWR (otomatis tampil di halaman /feedback website)
+    local FEEDBACK_API = KEY_API:gsub("/api/verify","").."/api/feedback"
+
+    mkSec("💬  FEEDBACK",feedScroll)
+    local fbPanel=Instance.new("Frame"); fbPanel.Size=UDim2.new(1,0,0,310); fbPanel.BackgroundColor3=Color3.fromRGB(6,10,22); fbPanel.BorderSizePixel=0; fbPanel.Parent=feedScroll
+    Instance.new("UICorner",fbPanel).CornerRadius=UDim.new(0,10)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(100,80,255); sk.Thickness=1.5; sk.Transparency=0.3; sk.Parent=fbPanel end
+
+    -- Info label
+    local fbInfoLbl=Instance.new("TextLabel"); fbInfoLbl.Size=UDim2.new(1,-14,0,14); fbInfoLbl.Position=UDim2.new(0,7,0,6); fbInfoLbl.BackgroundTransparency=1
+    fbInfoLbl.Text="📋 Feedback kamu akan tampil di website (public)"; fbInfoLbl.TextColor3=Color3.fromRGB(80,160,255)
+    fbInfoLbl.Font=Enum.Font.Gotham; fbInfoLbl.TextSize=8; fbInfoLbl.TextXAlignment=Enum.TextXAlignment.Left; fbInfoLbl.Parent=fbPanel
+
+    -- Dropdown: Feedback Type
+    local fbTypeSelected="Saran"
+    local fbTypeLbl=Instance.new("TextLabel"); fbTypeLbl.Size=UDim2.new(1,-14,0,14); fbTypeLbl.Position=UDim2.new(0,7,0,22); fbTypeLbl.BackgroundTransparency=1; fbTypeLbl.Text="TIPE LAPORAN"; fbTypeLbl.TextColor3=Color3.fromRGB(150,140,255); fbTypeLbl.Font=Enum.Font.GothamBold; fbTypeLbl.TextSize=9; fbTypeLbl.TextXAlignment=Enum.TextXAlignment.Left; fbTypeLbl.Parent=fbPanel
+
+    local fbDropRow=Instance.new("Frame"); fbDropRow.Size=UDim2.new(1,-14,0,28); fbDropRow.Position=UDim2.new(0,7,0,38); fbDropRow.BackgroundTransparency=1; fbDropRow.Parent=fbPanel
+    local fbDropBtn=Instance.new("TextButton"); fbDropBtn.Size=UDim2.new(1,0,1,0); fbDropBtn.BackgroundColor3=Color3.fromRGB(20,18,50); fbDropBtn.Text="▾  "..fbTypeSelected; fbDropBtn.TextColor3=Color3.fromRGB(180,170,255); fbDropBtn.Font=Enum.Font.GothamBold; fbDropBtn.TextSize=10; fbDropBtn.BorderSizePixel=0; fbDropBtn.Parent=fbDropRow
+    Instance.new("UICorner",fbDropBtn).CornerRadius=UDim.new(0,7)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(100,80,255); sk.Thickness=1; sk.Parent=fbDropBtn end
+    fbDropBtn.MouseButton1Click:Connect(function()
+        if activeDropdown then activeDropdown:Destroy(); activeDropdown=nil; return end
+        local pop=Instance.new("Frame"); pop.Size=UDim2.new(0,160,0,66); pop.BackgroundColor3=Color3.fromRGB(18,16,45)
+        pop.BorderSizePixel=0; pop.ZIndex=200; pop.Parent=screenGui
+        Instance.new("UICorner",pop).CornerRadius=UDim.new(0,8)
+        do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(100,80,255); sk.Thickness=1.2; sk.Parent=pop end
+        local ap=fbDropBtn.AbsolutePosition; local as=fbDropBtn.AbsoluteSize
+        pop.Position=UDim2.new(0,ap.X,0,ap.Y+as.Y+4)
+        activeDropdown=pop
+        local opts={"Saran","Report Bug","Feedback"}
+        for i,opt in ipairs(opts) do
+            local ob=Instance.new("TextButton"); ob.Size=UDim2.new(1,0,0,22); ob.Position=UDim2.new(0,0,0,(i-1)*22)
+            ob.BackgroundColor3=(opt==fbTypeSelected) and Color3.fromRGB(60,50,120) or Color3.fromRGB(18,16,45)
+            ob.Text="  "..opt; ob.TextColor3=Color3.fromRGB(200,190,255); ob.Font=Enum.Font.GothamSemibold; ob.TextSize=10
+            ob.TextXAlignment=Enum.TextXAlignment.Left; ob.BorderSizePixel=0; ob.ZIndex=201; ob.Parent=pop
+            ob.MouseButton1Click:Connect(function()
+                fbTypeSelected=opt; fbDropBtn.Text="▾  "..opt; pop:Destroy(); activeDropdown=nil
+            end)
+        end
+        local cc3; cc3=UserInputService.InputBegan:Connect(function(inp)
+            if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+                task.delay(0.15,function()
+                    if activeDropdown~=pop then cc3:Disconnect(); return end
+                    local mp=UserInputService:GetMouseLocation(); local pp=pop.AbsolutePosition; local ps=pop.AbsoluteSize
+                    if not(mp.X>=pp.X and mp.X<=pp.X+ps.X and mp.Y>=pp.Y and mp.Y<=pp.Y+ps.Y) then
+                        if activeDropdown==pop then pop:Destroy(); activeDropdown=nil end
+                        cc3:Disconnect()
+                    end
+                end)
+            end
+        end)
+    end)
+
+    -- Star rating
+    local fbRatingLbl=Instance.new("TextLabel"); fbRatingLbl.Size=UDim2.new(1,-14,0,14); fbRatingLbl.Position=UDim2.new(0,7,0,72); fbRatingLbl.BackgroundTransparency=1; fbRatingLbl.Text="RATING SCRIPT :"; fbRatingLbl.TextColor3=Color3.fromRGB(255,210,60); fbRatingLbl.Font=Enum.Font.GothamBold; fbRatingLbl.TextSize=9; fbRatingLbl.TextXAlignment=Enum.TextXAlignment.Left; fbRatingLbl.Parent=fbPanel
+    local fbRating=0; local starBtns={}
+    local starRow=Instance.new("Frame"); starRow.Size=UDim2.new(1,-14,0,30); starRow.Position=UDim2.new(0,7,0,88); starRow.BackgroundTransparency=1; starRow.Parent=fbPanel
+    for i=1,5 do
+        local sb=Instance.new("TextButton"); sb.Size=UDim2.new(0,28,0,28); sb.Position=UDim2.new(0,(i-1)*32,0,0)
+        sb.BackgroundTransparency=1; sb.Text="☆"; sb.TextColor3=Color3.fromRGB(255,200,0); sb.Font=Enum.Font.GothamBold; sb.TextSize=20; sb.BorderSizePixel=0; sb.Parent=starRow
+        table.insert(starBtns,sb)
+        sb.MouseButton1Click:Connect(function()
+            fbRating=i
+            for j,s in ipairs(starBtns) do s.Text=(j<=i) and "★" or "☆" end
+        end)
+        sb.MouseEnter:Connect(function()
+            for j,s in ipairs(starBtns) do s.TextColor3=(j<=i) and Color3.fromRGB(255,220,50) or Color3.fromRGB(255,200,0) end
+        end)
+        sb.MouseLeave:Connect(function()
+            for j,s in ipairs(starBtns) do s.TextColor3=Color3.fromRGB(255,200,0) end
+        end)
+    end
+
+    -- Text input
+    local fbBoxLbl=Instance.new("TextLabel"); fbBoxLbl.Size=UDim2.new(1,-14,0,14); fbBoxLbl.Position=UDim2.new(0,7,0,124); fbBoxLbl.BackgroundTransparency=1; fbBoxLbl.Text="ISI PENJELASAN :"; fbBoxLbl.TextColor3=Color3.fromRGB(200,210,255); fbBoxLbl.Font=Enum.Font.GothamBold; fbBoxLbl.TextSize=9; fbBoxLbl.TextXAlignment=Enum.TextXAlignment.Left; fbBoxLbl.Parent=fbPanel
+    local fbBox=Instance.new("TextBox"); fbBox.Size=UDim2.new(1,-14,0,90); fbBox.Position=UDim2.new(0,7,0,140)
+    fbBox.BackgroundColor3=Color3.fromRGB(10,12,30); fbBox.Text=""; fbBox.PlaceholderText="Tulis penjelasan kamu disini..."
+    fbBox.TextColor3=Color3.fromRGB(220,220,255); fbBox.PlaceholderColor3=Color3.fromRGB(80,80,120)
+    fbBox.Font=Enum.Font.Gotham; fbBox.TextSize=10; fbBox.ClearTextOnFocus=false; fbBox.BorderSizePixel=0
+    fbBox.MultiLine=true; fbBox.TextXAlignment=Enum.TextXAlignment.Left; fbBox.TextYAlignment=Enum.TextYAlignment.Top
+    fbBox.Parent=fbPanel
+    Instance.new("UICorner",fbBox).CornerRadius=UDim.new(0,7)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(100,80,255); sk.Thickness=1; sk.Parent=fbBox end
+
+    -- Send button
+    local fbSendBtn=Instance.new("TextButton"); fbSendBtn.Size=UDim2.new(1,-14,0,30); fbSendBtn.Position=UDim2.new(0,7,0,238)
+    fbSendBtn.BackgroundColor3=Color3.fromRGB(80,40,200); fbSendBtn.Text="📨 KIRIM KE WEBSITE"; fbSendBtn.TextColor3=Color3.fromRGB(255,255,255)
+    fbSendBtn.Font=Enum.Font.GothamBold; fbSendBtn.TextSize=11; fbSendBtn.BorderSizePixel=0; fbSendBtn.Parent=fbPanel
+    Instance.new("UICorner",fbSendBtn).CornerRadius=UDim.new(0,8)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(150,100,255); sk.Thickness=1.5; sk.Parent=fbSendBtn end
+    fbSendBtn.MouseEnter:Connect(function() TweenService:Create(fbSendBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(100,60,230)}):Play() end)
+    fbSendBtn.MouseLeave:Connect(function() TweenService:Create(fbSendBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(80,40,200)}):Play() end)
+
+    -- Status label
+    local fbStatus=Instance.new("TextLabel"); fbStatus.Size=UDim2.new(1,-14,0,18); fbStatus.Position=UDim2.new(0,7,0,274); fbStatus.BackgroundTransparency=1; fbStatus.Text=""; fbStatus.TextColor3=Color3.fromRGB(100,255,150); fbStatus.Font=Enum.Font.GothamBold; fbStatus.TextSize=9; fbStatus.TextXAlignment=Enum.TextXAlignment.Center; fbStatus.Parent=fbPanel
+
+    -- Link website
+    local fbLinkLbl=Instance.new("TextLabel"); fbLinkLbl.Size=UDim2.new(1,-14,0,12); fbLinkLbl.Position=UDim2.new(0,7,0,294); fbLinkLbl.BackgroundTransparency=1
+    fbLinkLbl.Text="Lihat semua feedback: "..KEY_API:gsub("/api/verify","/feedback"); fbLinkLbl.TextColor3=Color3.fromRGB(60,120,220)
+    fbLinkLbl.Font=Enum.Font.Gotham; fbLinkLbl.TextSize=7; fbLinkLbl.TextXAlignment=Enum.TextXAlignment.Center
+    fbLinkLbl.TextTruncate=Enum.TextTruncate.AtEnd; fbLinkLbl.Parent=fbPanel
+
+    fbSendBtn.MouseButton1Click:Connect(function()
+        if fbBox.Text=="" or #fbBox.Text<3 then
+            fbStatus.TextColor3=Color3.fromRGB(255,100,100); fbStatus.Text="⚠ Isi dulu penjelasannya!"; return end
+        if fbRating==0 then
+            fbStatus.TextColor3=Color3.fromRGB(255,200,0); fbStatus.Text="⚠ Pilih rating dulu (⭐)!"; return end
+        fbSendBtn.Text="⏳ Mengirim ke website..."; fbSendBtn.Active=false
+        fbStatus.TextColor3=Color3.fromRGB(150,150,255); fbStatus.Text="🔄 Menghubungi server..."
+
+        -- Sensor nama Roblox: "Sanzxmzz" → "San***zz"
+        local pName=player.Name; local masked=""
+        local len=#pName
+        if len<=3 then
+            masked=pName:sub(1,1)..string.rep("*",len-1)
+        elseif len<=5 then
+            masked=pName:sub(1,2)..string.rep("*",len-3)..pName:sub(-1)
+        else
+            masked=pName:sub(1,3)..string.rep("*",math.max(2,len-5))..pName:sub(-2)
+        end
+
+        -- Username website (dari verifyData kalau ada)
+        local websiteUser=nil
+        if _verifyData and _verifyData.username then
+            websiteUser=_verifyData.username
+        end
+
+        -- Payload JSON ke API website
+        local payload=HttpService:JSONEncode({
+            type=fbTypeSelected,
+            message=fbBox.Text:sub(1,1000),
+            rating=fbRating,
+            roblox_name=pName,          -- server yg sensor, lebih konsisten
+            website_username=websiteUser,
+            hwid=getHWID()
+        })
+
+        local ok=false
+        pcall(function()
+            local resp
+            -- Coba HttpService:RequestAsync dulu
+            if HttpService and HttpService.RequestAsync then
+                resp=HttpService:RequestAsync({
+                    Url=FEEDBACK_API, Method="POST", Body=payload,
+                    Headers={["Content-Type"]="application/json"}
+                }); ok=(resp.StatusCode>=200 and resp.StatusCode<300)
+            end
+        end)
+        -- Fallback: syn.request / request global
+        if not ok then
+            pcall(function()
+                local r
+                if syn and syn.request then
+                    r=syn.request({Url=FEEDBACK_API,Method="POST",Body=payload,Headers={["Content-Type"]="application/json"}})
+                elseif request then
+                    r=request({Url=FEEDBACK_API,Method="POST",Body=payload,Headers={["Content-Type"]="application/json"}})
+                end
+                if r then ok=(r.StatusCode>=200 and r.StatusCode<300) end
+            end)
+        end
+
+        if ok then
+            fbStatus.TextColor3=Color3.fromRGB(100,255,150)
+            fbStatus.Text="✅ Terkirim ke website! Terimakasih~"
+            fbBox.Text=""; fbRating=0
+            for _,s in ipairs(starBtns) do s.Text="☆" end
+            notify("📨 Feedback Terkirim","Sudah tampil di website! ("..masked..")",4)
+        else
+            fbStatus.TextColor3=Color3.fromRGB(255,100,100)
+            fbStatus.Text="⚠ Gagal kirim. Cek koneksi internet!"
+            notify("⚠ Gagal Kirim","Coba lagi nanti",4)
+        end
+        fbSendBtn.Text="📨 KIRIM KE WEBSITE"; fbSendBtn.Active=true
+    end)
+end
+
+-- ════════════════════════════════════════════════
+-- ANIMATION SYSTEM
+-- ════════════════════════════════════════════════
+local managedTracks={}; local currentPlayingState=nil
+local VALID_STATES={Walk=true,Run=true,Idle=true,Jump=true,Fall=true,Climb=true}
+
+local function setAnimateEnabled(on)
+    pcall(function()
+        local a=player.Character and player.Character:FindFirstChild("Animate")
+        if a then a.Disabled=not on end
+    end)
+end
+local function loadTracksFromAnimate()
+    for _,t in pairs(managedTracks) do pcall(function() t:Stop(0) end); pcall(function() t:Destroy() end) end
+    managedTracks={}; currentPlayingState=nil
+    pcall(function()
+        local c=player.Character; if not c then return end
+        local hm=c:FindFirstChildOfClass("Humanoid"); local am=hm and hm:FindFirstChildOfClass("Animator")
+        local aS=c:FindFirstChild("Animate"); if not am or not aS then return end
+        local fm={walk="Walk",run="Run",idle="Idle",jump="Jump",fall="Fall",climb="Climb"}
+        for _,folder in ipairs(aS:GetChildren()) do
+            local st=fm[folder.Name:lower()]
+            if st and not managedTracks[st] then
+                for _,ch in ipairs(folder:GetChildren()) do
+                    if ch:IsA("Animation") and ch.AnimationId~="" then
+                        local fa=Instance.new("Animation"); fa.AnimationId=ch.AnimationId
+                        local ok2,tr=pcall(function() return am:LoadAnimation(fa) end); fa:Destroy()
+                        if ok2 and tr then tr.Priority=Enum.AnimationPriority.Action3; managedTracks[st]=tr; break end
+                    end
+                end
+            end
+        end
+    end)
+end
+local function stopAllManagedAnims(fade)
+    for _,t in pairs(managedTracks) do if t and t.IsPlaying then pcall(function() t:Stop(fade or 0.15) end) end end
+    currentPlayingState=nil
+end
+local function driveAnim(st)
+    if currentPlayingState==st then return end
+    for s,t in pairs(managedTracks) do if t and t.IsPlaying and s~=st then t:Stop(0.15) end end
+    local tgt=managedTracks[st]; if tgt and not tgt.IsPlaying then tgt:Play(0.15) end
+    currentPlayingState=st
+end
+
+local activeBodyVel=nil
+local function removeBodyVel() if activeBodyVel and activeBodyVel.Parent then activeBodyVel:Destroy() end; activeBodyVel=nil end
+local function applyBodyVelocity(vel,dur)
+    removeBodyVel(); if not rootPart then return end
+    local bv=Instance.new("BodyVelocity"); bv.Velocity=vel; bv.MaxForce=Vector3.new(8000,8000,8000); bv.P=4000; bv.Parent=rootPart
+    activeBodyVel=bv; task.delay(dur or 0.07,function() if bv and bv.Parent then bv:Destroy() end; if activeBodyVel==bv then activeBodyVel=nil end end)
+end
+
+local prevPBState=nil; local airFrames=0
+local function applyPlaybackState(st,vel,ws)
+    if not humanoid then return end
+    if not VALID_STATES[st] then st="Idle" end
+    local wasAir=(prevPBState=="Jump" or prevPBState=="Fall")
+    local nowGnd=(st=="Walk" or st=="Run" or st=="Idle" or st=="Climb")
+    if wasAir and nowGnd then
+        airFrames=0; removeBodyVel()
+        pcall(function() rootPart.AssemblyLinearVelocity=Vector3.zero; rootPart.AssemblyAngularVelocity=Vector3.zero end)
+        humanoid:ChangeState(Enum.HumanoidStateType.Landed)
+        task.defer(function() if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Running) end end)
+    end
+    if st=="Jump" or st=="Fall" then airFrames=airFrames+1 else airFrames=0 end
+    prevPBState=st
+    if st=="Jump" then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping); driveAnim("Jump")
+        if airFrames<=3 and vel and vel.Y>0.5 then
+            local fac=math.max(0.1,1-(airFrames-1)*0.3)
+            applyBodyVelocity(Vector3.new(vel.X*0.12,vel.Y*0.45*fac,vel.Z*0.12),0.06)
+        end
+    elseif st=="Fall" then humanoid:ChangeState(Enum.HumanoidStateType.Freefall); driveAnim("Fall")
+    elseif st=="Climb" then removeBodyVel(); humanoid:ChangeState(Enum.HumanoidStateType.Climbing); driveAnim("Climb")
+    elseif st=="Run" then removeBodyVel(); humanoid.WalkSpeed=ws or 27; humanoid:ChangeState(Enum.HumanoidStateType.Running); driveAnim("Run")
+    elseif st=="Walk" then removeBodyVel(); humanoid.WalkSpeed=ws or 25; humanoid:ChangeState(Enum.HumanoidStateType.Running); driveAnim("Walk")
+    else removeBodyVel(); humanoid:ChangeState(Enum.HumanoidStateType.Running); driveAnim("Idle") end
+end
+
+local function getHumanoidState()
+    if not humanoid or not rootPart then return "Idle" end
+    local st=humanoid:GetState(); local spd=humanoid.MoveDirection.Magnitude; local vy=rootPart.AssemblyLinearVelocity.Y
+    if st==Enum.HumanoidStateType.Jumping then return "Jump"
+    elseif st==Enum.HumanoidStateType.Freefall then return vy>1 and "Jump" or "Fall"
+    elseif st==Enum.HumanoidStateType.Climbing then return "Climb"
+    elseif spd>0.1 then return humanoid.WalkSpeed>=20 and "Run" or "Walk"
+    else return "Idle" end
+end
+
+-- ════════════════════════════════════════════════
+-- ROUTE VIZ
+-- ════════════════════════════════════════════════
+local STATE_COLORS={Idle=Color3.fromRGB(180,180,180),Walk=Color3.fromRGB(80,200,80),Run=Color3.fromRGB(255,160,0),Jump=Color3.fromRGB(80,180,255),Fall=Color3.fromRGB(200,80,255),Climb=Color3.fromRGB(255,240,80)}
+local function clearRouteViz()
+    for _,p in ipairs(routeParts) do if p and p.Parent then p:Destroy() end end; routeParts={}
+    local f=workspace:FindFirstChild("_WALK_Route"); if f then f:ClearAllChildren() end
+end
+local routeBuildPending=false
+local function buildRouteViz()
+    if routeBuildPending then return end; routeBuildPending=true
+    task.defer(function()
+        routeBuildPending=false; clearRouteViz(); if #recordedData<2 then return end
+        local folder=workspace:FindFirstChild("_WALK_Route") or Instance.new("Folder"); folder.Name="_WALK_Route"; folder.Parent=workspace
+        local step=math.max(1,math.floor(#recordedData/300)); local sampled={}
+        for i=1,#recordedData,step do table.insert(sampled,recordedData[i]) end
+        if sampled[#sampled]~=recordedData[#recordedData] then table.insert(sampled,recordedData[#recordedData]) end
+        for i,data in ipairs(sampled) do
+            local col=STATE_COLORS[data.State] or Color3.fromRGB(255,255,255)
+            local dot=Instance.new("Part"); dot.Size=Vector3.new(0.3,0.3,0.3); dot.CFrame=CFrame.new(data.Position)
+            dot.Anchored=true; dot.CanCollide=false; dot.CanQuery=false; dot.CastShadow=false; dot.Material=Enum.Material.Neon; dot.Color=col; dot.Parent=folder
+            Instance.new("SpecialMesh",dot).MeshType=Enum.MeshType.Sphere; table.insert(routeParts,dot)
+            if i<#sampled then
+                local np=sampled[i+1].Position; local mid=(data.Position+np)/2; local dist=(np-data.Position).Magnitude
+                if dist>0.05 then
+                    local seg=Instance.new("Part"); seg.Size=Vector3.new(0.1,0.1,dist); seg.CFrame=CFrame.lookAt(mid,np)
+                    seg.Anchored=true; seg.CanCollide=false; seg.CanQuery=false; seg.CastShadow=false
+                    seg.Material=Enum.Material.Neon; seg.Color=col; seg.Transparency=0.4; seg.Parent=folder; table.insert(routeParts,seg)
+                end
+            end
+        end
+    end)
+end
+
+-- ESP line heartbeat
+local _espSkip=0
+-- ESP Billboard objects pool
+local espBillboards={} -- [player.Name] = {bill, nameLbl, distLbl, boxParts, avatarImg}
+local function cleanESPBillboard(pName)
+    local obj=espBillboards[pName]; if not obj then return end
+    -- Destroy Drawing box lines dulu (beda dari Roblox Instance, harus :Remove())
+    if obj.boxLines then
+        for _,ln in ipairs(obj.boxLines) do
+            pcall(function() ln.Visible=false; ln:Remove() end)
+        end
+        obj.boxLines={}
+    end
+    pcall(function() if obj.bill and obj.bill.Parent then obj.bill:Destroy() end end)
+    espBillboards[pName]=nil
+end
+local function cleanAllESPBillboards()
+    for n,_ in pairs(espBillboards) do cleanESPBillboard(n) end
+end
+
+local function getOrCreateBillboard(p)
+    if not p.Character then return nil end
+    local ch=p.Character; local head=ch:FindFirstChild("Head"); if not head then return nil end
+    local existing=espBillboards[p.Name]
+    if existing and existing.bill and existing.bill.Parent then return existing end
+    -- Create new billboard
+    local bill=Instance.new("BillboardGui"); bill.Name="_AWR_ESP_"..p.Name
+    bill.Size=UDim2.new(0,120,0,50); bill.StudsOffset=Vector3.new(0,2.5,0)
+    bill.AlwaysOnTop=true; bill.ResetOnSpawn=false
+    bill.Parent=head
+    -- Name label
+    local nameLbl=Instance.new("TextLabel"); nameLbl.Size=UDim2.new(1,0,0,18)
+    nameLbl.Position=UDim2.new(0,0,0,0); nameLbl.BackgroundTransparency=1
+    nameLbl.Text=p.Name; nameLbl.TextColor3=Color3.fromRGB(255,255,100)
+    nameLbl.Font=Enum.Font.GothamBold; nameLbl.TextSize=12
+    nameLbl.TextStrokeTransparency=0; nameLbl.TextStrokeColor3=Color3.fromRGB(0,0,0)
+    nameLbl.Parent=bill
+    -- Avatar circle image
+    local avatarImg=Instance.new("ImageLabel"); avatarImg.Size=UDim2.new(0,16,0,16)
+    avatarImg.Position=UDim2.new(0,-18,0,1); avatarImg.BackgroundColor3=Color3.fromRGB(30,30,30)
+    avatarImg.BackgroundTransparency=0.2; avatarImg.BorderSizePixel=0
+    avatarImg.Image="rbxthumb://type=AvatarHeadShot&id="..p.UserId.."&w=48&h=48"
+    avatarImg.ScaleType=Enum.ScaleType.Fit; avatarImg.Parent=bill
+    Instance.new("UICorner",avatarImg).CornerRadius=UDim.new(1,0)
+    -- Distance label
+    local distLbl=Instance.new("TextLabel"); distLbl.Size=UDim2.new(1,0,0,14)
+    distLbl.Position=UDim2.new(0,0,0,18); distLbl.BackgroundTransparency=1
+    distLbl.Text=""; distLbl.TextColor3=Color3.fromRGB(150,220,255)
+    distLbl.Font=Enum.Font.Gotham; distLbl.TextSize=9
+    distLbl.TextStrokeTransparency=0; distLbl.TextStrokeColor3=Color3.fromRGB(0,0,0)
+    distLbl.Parent=bill
+    -- ESP Box (4 Drawing lines forming box outline around player)
+    local boxLines={}
+    if DRAWING_SUPPORTED then
+        for i=1,4 do
+            local ok2,ln=pcall(function() return Drawing.new("Line") end)
+            if ok2 and ln then
+                ln.Color=Color3.fromRGB(255,80,80); ln.Thickness=2.5
+                ln.Transparency=0.0; ln.ZIndex=4; ln.Visible=false
+                table.insert(boxLines,ln)
+            end
+        end
+    end
+    local obj={bill=bill,nameLbl=nameLbl,distLbl=distLbl,boxLines=boxLines,avatarImg=avatarImg,rainbowTick=0}
+    espBillboards[p.Name]=obj
+    return obj
+end
+
+local _espHbSkip=0
+RunService.Heartbeat:Connect(function()
+    _espHbSkip=_espHbSkip+1; if _espHbSkip<3 then return end; _espHbSkip=0
+    local cam=workspace.CurrentCamera; local vp=cam.ViewportSize
+    local myRoot=player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+    -- LINE ESP
+    if espEnabled and espLines and DRAWING_SUPPORTED then
+        local oY=(espLinePos=="Top") and 0 or (espLinePos=="Bottom") and vp.Y or vp.Y/2
+        local oX=vp.X/2; local li=0
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p~=player and p.Character then
+                local ch=p.Character; local root=ch:FindFirstChild("HumanoidRootPart"); if not root then continue end
+                local tPos=root.Position
+                if espLinePos=="Top" then local hd=ch:FindFirstChild("Head"); if hd then tPos=hd.Position+Vector3.new(0,1.5,0) end
+                elseif espLinePos=="Bottom" then tPos=root.Position-Vector3.new(0,3,0) end
+                local sp,onScreen=cam:WorldToViewportPoint(tPos); if not onScreen then continue end
+                li=li+1; local ln=getPoolLine(li)
+                if ln then ln.From=Vector2.new(oX,oY); ln.To=Vector2.new(sp.X,sp.Y); ln.Visible=true end
+            end
+        end
+        hidePoolLines(li+1); espActiveCount=li
+    else
+        if espActiveCount>0 then clearAllPoolLines() end
+    end
+
+    -- NAME / DISTANCE / AVATAR / BOX ESP
+    if espEnabled and (espNames or espDistEnabled or espAvatarEnabled or espBoxEnabled) then
+        local activePlayers={}
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p~=player and p.Character then
+                activePlayers[p.Name]=true
+                local obj=getOrCreateBillboard(p)
+                if not obj then continue end
+                -- Name + Rainbow
+                obj.nameLbl.Visible=espNames
+                obj.avatarImg.Visible=espNames and espAvatarEnabled
+                if espNames then
+                    obj.rainbowTick=(obj.rainbowTick or 0)+0.03
+                    local h=obj.rainbowTick % 1
+                    obj.nameLbl.TextColor3=Color3.fromHSV(h,1,1)
+                    obj.nameLbl.TextStrokeColor3=Color3.fromHSV((h+0.5)%1,0.8,0.3)
+                end
+                -- Distance
+                if espDistEnabled and myRoot then
+                    local root=p.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local dist=math.floor((root.Position-myRoot.Position).Magnitude)
+                        obj.distLbl.Text=dist.."m"; obj.distLbl.Visible=true
+                    end
+                else obj.distLbl.Visible=false end
+                -- Box
+                if espBoxEnabled and DRAWING_SUPPORTED and p.Character then
+                    local root=p.Character:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        -- Box warna rainbow (fase beda per player pakai UserId)
+                        local boxHue=((obj.rainbowTick or 0) + (p.UserId%100)/100) % 1
+                        local boxCol=Color3.fromHSV(boxHue,1,1)
+                        -- Project character bounding box to screen
+                        local rootPos=root.Position
+                        local topW=rootPos+Vector3.new(0,3.2,0)
+                        local botW=rootPos-Vector3.new(0,3.2,0)
+                        local sp1,on1=cam:WorldToViewportPoint(topW)
+                        local sp2,on2=cam:WorldToViewportPoint(botW)
+                        if (on1 or on2) and sp1.Z > 0 then
+                            local screenH=math.abs(sp1.Y-sp2.Y)
+                            local screenW=screenH*0.55
+                            local cx=(sp1.X+sp2.X)/2; local cy=(sp1.Y+sp2.Y)/2
+                            local x1=cx-screenW/2; local y1=cy-screenH/2
+                            local x2=cx+screenW/2; local y2=cy+screenH/2
+                            -- 4 sides: top, bottom, left, right
+                            local sides={{Vector2.new(x1,y1),Vector2.new(x2,y1)},
+                                         {Vector2.new(x1,y2),Vector2.new(x2,y2)},
+                                         {Vector2.new(x1,y1),Vector2.new(x1,y2)},
+                                         {Vector2.new(x2,y1),Vector2.new(x2,y2)}}
+                            for i,ln in ipairs(obj.boxLines) do
+                                if sides[i] then
+                                    ln.From=sides[i][1]; ln.To=sides[i][2]
+                                    ln.Color=boxCol; ln.Visible=true
+                                end
+                            end
+                        else
+                            for _,ln in ipairs(obj.boxLines) do ln.Visible=false end
+                        end
+                    end
+                else
+                    -- Hide semua box lines (tapi jangan Remove, biar bisa dipakai lagi)
+                    for _,ln in ipairs(obj.boxLines) do pcall(function() ln.Visible=false end) end
+                end
+            end
+        end
+        -- Clean up billboards for players who left
+        for pName,_ in pairs(espBillboards) do
+            if not activePlayers[pName] then cleanESPBillboard(pName) end
+        end
+    else
+        cleanAllESPBillboards()
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p~=player and p.Character then
+                for _,v in ipairs(p.Character:GetDescendants()) do
+                    if v:IsA("BillboardGui") and v.Name:sub(1,8)=="_AWR_ESP" then v:Destroy() end
+                end
+            end
+        end
+    end
+end)
+
+-- ════════════════════════════════════════════════
+-- PLAYBACK / RECORDING
+-- ════════════════════════════════════════════════
+local function refreshPlayUI()
+    if isPlaying then
+        local txt=autoPlayTarget>0 and string.format("▶ %d poin | Auto %d/%d",#recordedData,autoPlayCount,autoPlayTarget) or "▶ Playing | "..#recordedData.." poin"
+        playStatusLbl.Text=txt; playStatusLbl.TextColor3=Color3.fromRGB(80,255,100)
+    elseif isWalkingToTrack then
+        playStatusLbl.Text="🏃 Menuju track terdekat..."; playStatusLbl.TextColor3=Color3.fromRGB(255,200,0)
+    else
+        playStatusLbl.Text="● Idle | "..#recordedData.." poin"; playStatusLbl.TextColor3=Color3.fromRGB(100,170,100)
+    end
+end
+
+local function stopPlayback()
+    if not isPlaying then return end
+    if playbackConn then playbackConn:Disconnect(); playbackConn=nil end
+    isPlaying=false; isPaused=false; stopAllManagedAnims(); removeBodyVel()
+    prevPBState=nil; airFrames=0; setAnimateEnabled(true)
+    updateStatus("Playback Stopped","Ready",Color3.fromRGB(200,200,220),Color3.fromRGB(80,80,80))
+    animLbl.Text="State: — | —"; notify("⏹ Stopped","Playback selesai",2); updateStats(); refreshPlayUI()
+end
+
+local function findNearestIndex()
+    if #recordedData==0 then return 1 end
+    local ch=player.Character; local rp=ch and ch:FindFirstChild("HumanoidRootPart")
+    if not rp then return 1 end
+    local myPos=rp.Position; local bestIdx=1; local bestDist=math.huge
+    for i,d in ipairs(recordedData) do local dist=(d.Position-myPos).Magnitude; if dist<bestDist then bestDist=dist; bestIdx=i end end
+    return bestIdx
+end
+
+local _pbUISkip=0
+local function startPlayback(fromNearest)
+    if isPlaying then return end
+    if #recordedData<2 then notify("⚠ Error","Butuh ≥ 2 titik",2); return end
+    character=player.Character; if not character then return end
+    humanoid=character:FindFirstChildOfClass("Humanoid"); rootPart=character:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not rootPart then return end
+    local startIdx=fromNearest and findNearestIndex() or 1
+    if not fromNearest then pcall(function() rootPart.CFrame=recordedData[1].CFrame end) end
+    updateStatus(fromNearest and "▶ Playing (Terdekat)..." or "▶ Playing (Awal)...",fromNearest and "Dari titik terdekat" or "Dari awal",Color3.fromRGB(80,255,140),Color3.fromRGB(0,220,100))
+    setAnimateEnabled(false); loadTracksFromAnimate(); isPlaying=true; isPaused=false
+    notify("▶ Playing","LShift untuk stop",2)
+    -- FIX NEAREST: offset elapsed ke startIdx agar playback mulai dari titik terdekat, bukan mundur
+    local elapsed=0
+    for i=1,startIdx-1 do elapsed=elapsed+(recordedData[i].Time or 0.05) end
+    local lastTick=tick(); local delayLeft=playbackDelay
+    playbackConn=RunService.Heartbeat:Connect(function()
+        if not isPlaying then return end
+        pcall(function()
+        if not character or not character.Parent then stopPlayback(); return end
+        if isPaused then lastTick=tick(); return end
+        if delayLeft>0 then local n2=tick(); delayLeft=delayLeft-(n2-lastTick); lastTick=n2; animLbl.Text=string.format("⏱ %.1fs...",math.max(0,delayLeft)); return end
+        local now=tick(); elapsed=elapsed+(now-lastTick)*playbackSpeed; lastTick=now
+        local seg,segE=nil,elapsed
+        for i=1,#recordedData-1 do
+            local dur=recordedData[i].Time or 0.05
+            if segE<=dur then seg=i; break end; segE=segE-dur
+        end
+        if not seg then
+            if loopPlayback or (autoPlayTarget>0 and autoPlayCount<autoPlayTarget) then
+                if autoPlayTarget>0 then
+                    autoPlayCount=autoPlayCount+1; updateStats()
+                    if autoPlayCount>=autoPlayTarget then autoPlayCount=0; autoPlayTarget=0; stopPlayback(); return end
+                end
+                -- FIX AUTOPLAY LOOP: reset posisi + velocity + tunggu physics
+                elapsed=0; lastTick=tick()
+                pcall(function()
+                    rootPart.AssemblyLinearVelocity=Vector3.zero
+                    rootPart.AssemblyAngularVelocity=Vector3.zero
+                    task.wait(0.04)
+                    rootPart.CFrame=recordedData[1].CFrame
+                    task.wait(0.06) -- tunggu physics settle
+                    rootPart.AssemblyLinearVelocity=Vector3.zero
+                    lastTick=tick() -- reset timer setelah settle
+                end)
+            else stopPlayback() end
+            return
+        end
+        local cur=recordedData[seg]; local nxt=recordedData[seg+1]
+        local t=math.clamp(segE/(cur.Time or 0.05),0,1)
+        pcall(function()
+            if smoothMovement then
+                local newPos=cur.Position:Lerp(nxt.Position,t); local lv=cur.CFrame.LookVector:Lerp(nxt.CFrame.LookVector,t)
+                if lv.Magnitude>0.01 then rootPart.CFrame=CFrame.lookAt(newPos,newPos+lv) else rootPart.CFrame=CFrame.new(newPos) end
+            else rootPart.CFrame=(t>=0.5) and nxt.CFrame or cur.CFrame end
+        end)
+        local st=(t>=0.5) and nxt.State or cur.State
+        pcall(function() if st~="Jump" and st~="Fall" then rootPart.AssemblyLinearVelocity=Vector3.zero; rootPart.AssemblyAngularVelocity=Vector3.zero end end)
+        local vel=(t>=0.5) and nxt.Velocity or cur.Velocity; local ws=(t>=0.5) and (nxt.WalkSpeed or 25) or (cur.WalkSpeed or 26)
+        applyPlaybackState(st,vel,ws)
+        _pbUISkip=_pbUISkip+1
+        if _pbUISkip>=3 then
+            _pbUISkip=0
+            animLbl.Text=string.format("▶ %d/%d  🏃%s  ⚡%.1fx",seg,#recordedData-1,st,playbackSpeed)
+            sPoints.Text=string.format("📍%d  |  🕐%.1fs  |  %s",#recordedData,elapsed,st)
+            refreshPlayUI()
+        end
+        end)
+    end)
+    refreshPlayUI()
+end
+
+-- WALK TO NEAREST THEN PLAY
+local function stopWalkToTrack()
+    if walkToTrackConn then walkToTrackConn:Disconnect(); walkToTrackConn=nil end
+    isWalkingToTrack=false; refreshPlayUI()
+end
+
+local function walkToNearestThenPlay()
+    if #recordedData<2 then notify("⚠ Error","Butuh ≥ 2 titik",2); return end
+    local ch=player.Character; if not ch then return end
+    humanoid=ch:FindFirstChildOfClass("Humanoid"); rootPart=ch:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not rootPart then return end
+    local nearIdx=findNearestIndex(); local nearPos=recordedData[nearIdx].Position
+    local dist=(nearPos-rootPart.Position).Magnitude
+    if dist<5 then
+        notify("▶ Play Terdekat","Langsung mulai dari titik "..nearIdx,2); startPlayback(true); return
+    end
+    notify("🏃 Menuju Track","Jalan ke titik "..nearIdx.." ("..math.floor(dist).."s)",3)
+    isWalkingToTrack=true; updateStatus("🏃 Menuju Track...","Titik "..nearIdx.." — "..math.floor(dist).." studs",Color3.fromRGB(255,200,0),Color3.fromRGB(200,160,0),true)
+    refreshPlayUI()
+    humanoid:MoveTo(nearPos)
+    local timeout=0
+    walkToTrackConn=RunService.Heartbeat:Connect(function(dt)
+        if not isWalkingToTrack then return end
+        timeout=timeout+dt
+        local ch2=player.Character; local rp2=ch2 and ch2:FindFirstChild("HumanoidRootPart")
+        if not rp2 then stopWalkToTrack(); return end
+        local d2=(nearPos-rp2.Position).Magnitude
+        if d2<4.5 or timeout>=15 then
+            stopWalkToTrack()
+            task.wait(0.2)
+            notify("▶ Sampai!","Mulai playback dari titik "..nearIdx,2)
+            startPlayback(true)
+        elseif math.floor(timeout*10)%50==0 then
+            -- refresh MoveTo agar tidak expire
+            local hm2=ch2 and ch2:FindFirstChildOfClass("Humanoid"); if hm2 then hm2:MoveTo(nearPos) end
+        end
+    end)
+end
+
+local function doRespawn()
+    notify("♻ Respawn","Menunggu...",2); player:LoadCharacter(); task.wait(3)
+    character=player.Character or player.CharacterAdded:Wait()
+    humanoid=character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid",5); rootPart=character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart",5)
+end
+
+apGo.MouseButton1Click:Connect(function()
+    local n=tonumber(apBox.Text); if not n or n<1 then notify("⚠ Error","Angka tidak valid",2); return end
+    if #recordedData<2 then notify("⚠ Error","Butuh ≥ 2 titik di Record dulu",2); return end
+    if isPlaying then stopPlayback(); task.wait(0.2) end
+    -- AUTOPLAY FIX: refresh karakter sebelum mulai
+    character=player.Character or player.CharacterAdded:Wait()
+    rootPart=character:WaitForChild("HumanoidRootPart",5)
+    humanoid=character:WaitForChild("Humanoid",5) or character:FindFirstChildOfClass("Humanoid")
+    if not rootPart or not humanoid then notify("⚠ Error","Gagal dapat karakter. Coba respawn dulu.",3); return end
+    -- Pastikan humanoid hidup
+    if humanoid.Health<=0 then notify("⚠ Error","Karakter mati. Respawn dulu!",3); return end
+    autoPlayCount=0; autoPlayTarget=math.floor(n)
+    notify("🔂 AutoPlay","Mulai "..autoPlayTarget.."x — teleport ke start",2)
+    updateStats()
+    coroutine.wrap(function()
+        -- Teleport ke titik awal
+        pcall(function() 
+            rootPart.AssemblyLinearVelocity=Vector3.zero
+            rootPart.AssemblyAngularVelocity=Vector3.zero
+            rootPart.CFrame=recordedData[1].CFrame 
+        end)
+        task.wait(0.12) -- tunggu physics settle
+        -- Pastikan velocity 0 dulu
+        pcall(function()
+            rootPart.AssemblyLinearVelocity=Vector3.zero
+        end)
+        task.wait(0.05)
+        startPlayback(false)
+        refreshPlayUI()
+    end)()
+end)
+
+local function stopRecording()
+    if not isRecording then return end
+    if recordConn then recordConn:Disconnect(); recordConn=nil end
+    isRecording=false; isPaused=false; setAnimateEnabled(true)
+    updateStatus("Recording Stopped",#recordedData.." poin",Color3.fromRGB(255,210,70),Color3.fromRGB(220,155,0))
+    updatePointsLabel(); if showRoute then buildRouteViz() end
+    notify("⏹ Stopped","Rec selesai: "..#recordedData.." poin",2); updateStats()
+end
+
+local function startRecording(append)
+    if isRecording then return end
+    character=player.Character; if not character then return end
+    humanoid=character:FindFirstChildOfClass("Humanoid"); rootPart=character:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not rootPart then return end
+    setAnimateEnabled(true); if not append then recordedData={} end
+    isRecording=true; isPaused=false
+    updateStatus("⬤ Recording...","Gerak untuk rekam",Color3.fromRGB(255,80,80),Color3.fromRGB(255,60,60),true)
+    updatePointsLabel(); notify("⬤ Recording",append and "Lanjut dari "..#recordedData.." poin" or "LCtrl untuk stop",2)
+    local lastTime=tick()
+    recordConn=RunService.Heartbeat:Connect(function()
+        if not isRecording then return end
+        pcall(function()
+        if not character or not character.Parent then stopRecording(); return end
+        if isPaused then lastTime=tick(); return end
+        local now=tick(); local dt=now-lastTime
+        local st=getHumanoidState(); local isAir=(st=="Jump" or st=="Fall")
+        if not isAir and dt<0.05 then return end; lastTime=now
+        local vel=rootPart.AssemblyLinearVelocity
+        table.insert(recordedData,{Position=rootPart.Position,CFrame=rootPart.CFrame,Time=math.max(dt,0.016),State=st,Velocity=vel,WalkSpeed=humanoid.WalkSpeed})
+        if #recordedData%5==0 then updatePointsLabel(); animLbl.Text="⬤ Rec: "..st.." | "..#recordedData; updateStats() end
+        end)
+    end)
+end
+
+-- Edit Mode
+local editOriginalData={}
+local function stopEditSmooth() if editSmoothConn then editSmoothConn:Disconnect(); editSmoothConn=nil end; editTargetCFrame=nil end
+local editFreemove=false  -- when true, player can walk freely in edit mode
+local function startEditSmooth()
+    stopEditSmooth(); if not rootPart then return end
+    local _sk=0; local lockTimer=0
+    editSmoothConn=RunService.Heartbeat:Connect(function(dt)
+        if not isEditMode or not rootPart or not rootPart.Parent then stopEditSmooth(); return end
+        if editFreemove then return end  -- free move mode: don't lock position
+        if not editTargetCFrame then return end
+        _sk=_sk+1; if _sk<2 then return end; _sk=0
+        local cur=rootPart.CFrame
+        if (editTargetCFrame.Position-cur.Position).Magnitude>0.05 then
+            rootPart.CFrame=cur:Lerp(editTargetCFrame,0.22)
+        else rootPart.CFrame=editTargetCFrame end
+    end)
+end
+local function enterEditMode()
+    if #recordedData<2 then notify("⚠ Error","Record dulu",2); return end
+    editFreemove=false
+    if isPlaying then stopPlayback() end; if isRecording then stopRecording() end
+    isEditMode=true; character=player.Character; rootPart=character and character:FindFirstChild("HumanoidRootPart")
+    local startIdx=1
+    if rootPart then local myPos=rootPart.Position; local bd=math.huge; for i,d in ipairs(recordedData) do local ds=(d.Position-myPos).Magnitude; if ds<bd then bd=ds; startIdx=i end end end
+    editIndex=startIdx; editOriginalData={}
+    for i,d in ipairs(recordedData) do editOriginalData[i]={Position=d.Position,CFrame=d.CFrame,Time=d.Time,State=d.State,Velocity=d.Velocity,WalkSpeed=d.WalkSpeed} end
+    editTargetCFrame=recordedData[editIndex].CFrame; if rootPart then rootPart.CFrame=editTargetCFrame end
+    startEditSmooth(); updateStatus("✏ Edit Mode","◀ ▶ navigasi, OK untuk trim",Color3.fromRGB(255,180,60),Color3.fromRGB(220,140,0))
+    showRoute=true; buildRouteViz(); notify("✏ Edit Mode","Titik "..startIdx,3)
+end
+local function exitEditMode(cancelled)
+    isEditMode=false; stopEditSmooth()
+    if cancelled and #editOriginalData>0 then
+        recordedData={}; for i,d in ipairs(editOriginalData) do recordedData[i]={Position=d.Position,CFrame=d.CFrame,Time=d.Time,State=d.State,Velocity=d.Velocity,WalkSpeed=d.WalkSpeed} end
+        notify("↩ Dibatalkan","Data dikembalikan",2)
+    end
+    updateStatus("Edit Mode Off","Ready",Color3.fromRGB(200,200,220),Color3.fromRGB(80,80,80))
+    updatePointsLabel(); if showRoute then buildRouteViz() else clearRouteViz() end
+end
+local function updateEditCursor(lbl)
+    if #recordedData==0 then return end; editIndex=math.clamp(editIndex,1,#recordedData)
+    local data=recordedData[editIndex]; if lbl then lbl.Text=string.format("Point: %d/%d  State: %s",editIndex,#recordedData,data.State) end
+    editTargetCFrame=data.CFrame; if showRoute then buildRouteViz() end
+end
+
+-- ════════════════════════════════════════════════
+-- FLOATING RECORDING PANEL
+-- ════════════════════════════════════════════════
+local recFloating=nil
+local function createRecordingFloat()
+    if recFloating then recFloating:Destroy(); recFloating=nil end
+    local gui=Instance.new("Frame"); gui.Name="_AWR_RecFloat"
+    gui.Size=UDim2.new(0,270,0,520); gui.Position=UDim2.new(1,-285,0,50)
+    gui.BackgroundColor3=Color3.fromRGB(18,8,8); gui.Active=true; gui.Draggable=true; gui.BorderSizePixel=0; gui.ZIndex=50; gui.Parent=screenGui
+    Instance.new("UICorner",gui).CornerRadius=UDim.new(0,16)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(255,60,60); sk.Thickness=1.5; sk.Parent=gui end
+    local tb=Instance.new("Frame"); tb.Size=UDim2.new(1,0,0,34); tb.BackgroundColor3=Color3.fromRGB(35,5,5); tb.BorderSizePixel=0; tb.ZIndex=50; tb.Parent=gui
+    Instance.new("UICorner",tb).CornerRadius=UDim.new(0,16)
+    do local fix=Instance.new("Frame"); fix.Size=UDim2.new(1,0,0.5,0); fix.Position=UDim2.new(0,0,0.5,0); fix.BackgroundColor3=Color3.fromRGB(35,5,5); fix.BorderSizePixel=0; fix.ZIndex=50; fix.Parent=tb end
+    local ttl=Instance.new("TextLabel"); ttl.Size=UDim2.new(1,-120,1,0); ttl.Position=UDim2.new(0,12,0,0)
+    ttl.BackgroundTransparency=1; ttl.Text="⬤ RECORDING PANEL"; ttl.Font=Enum.Font.GothamBold; ttl.TextSize=12; ttl.TextColor3=Color3.fromRGB(255,255,255); ttl.TextXAlignment=Enum.TextXAlignment.Left; ttl.ZIndex=51; ttl.Parent=tb
+    local function hBtn(xOff,txt,col)
+        local b=Instance.new("TextButton"); b.Size=UDim2.new(0,30,0,30); b.Position=UDim2.new(1,xOff,0.5,-15)
+        b.BackgroundTransparency=1; b.Text=txt; b.TextColor3=col; b.Font=Enum.Font.GothamBold; b.TextSize=14; b.BorderSizePixel=0; b.ZIndex=51; b.Parent=tb; return b
+    end
+    local lockR=hBtn(-96,"🔓",Color3.fromRGB(255,180,80)); local minR=hBtn(-64,"－",Color3.fromRGB(255,220,0)); local clsR=hBtn(-34,"✕",Color3.fromRGB(255,80,80))
+    local rPLocked=false
+    lockR.MouseButton1Click:Connect(function() rPLocked=not rPLocked; gui.Draggable=not rPLocked; lockR.Text=rPLocked and "🔒" or "🔓" end)
+    local recSF=Instance.new("ScrollingFrame"); recSF.Size=UDim2.new(1,-8,1,-38); recSF.Position=UDim2.new(0,4,0,37)
+    recSF.BackgroundTransparency=1; recSF.ScrollBarThickness=4; recSF.ScrollBarImageColor3=Color3.fromRGB(255,80,80)
+    recSF.CanvasSize=UDim2.new(0,0,0,0); recSF.AutomaticCanvasSize=Enum.AutomaticSize.Y; recSF.BorderSizePixel=0; recSF.Parent=gui; recSF.ZIndex=50
+    local rUL=Instance.new("UIListLayout"); rUL.Padding=UDim.new(0,4); rUL.HorizontalAlignment=Enum.HorizontalAlignment.Center; rUL.SortOrder=Enum.SortOrder.LayoutOrder; rUL.Parent=recSF
+    local rPad=Instance.new("UIPadding"); rPad.PaddingTop=UDim.new(0,4); rPad.PaddingBottom=UDim.new(0,12); rPad.PaddingLeft=UDim.new(0,4); rPad.PaddingRight=UDim.new(0,4); rPad.Parent=recSF
+    local function mkFS(txt)
+        local f=Instance.new("Frame"); f.Size=UDim2.new(1,0,0,12); f.BackgroundTransparency=1; f.Parent=recSF
+        local l=Instance.new("TextLabel"); l.Size=UDim2.new(1,0,1,0); l.BackgroundTransparency=1; l.Text=txt; l.TextColor3=Color3.fromRGB(255,120,80); l.Font=Enum.Font.GothamBold; l.TextSize=8; l.TextXAlignment=Enum.TextXAlignment.Left; l.Parent=f
+        local ln=Instance.new("Frame"); ln.Size=UDim2.new(1,0,0,1); ln.Position=UDim2.new(0,0,1,-1); ln.BackgroundColor3=Color3.fromRGB(180,60,20); ln.BackgroundTransparency=0.5; ln.BorderSizePixel=0; ln.Parent=f
+    end
+    local sLbl=Instance.new("TextLabel"); sLbl.Size=UDim2.new(1,0,0,18); sLbl.BackgroundTransparency=1; sLbl.Text="● Idle — 0 poin"; sLbl.Font=Enum.Font.GothamBold; sLbl.TextSize=10; sLbl.TextColor3=Color3.fromRGB(180,180,180); sLbl.TextXAlignment=Enum.TextXAlignment.Center; sLbl.ZIndex=51; sLbl.Parent=recSF
+    local function mkFR2(t1,c1,t2,c2)
+        local row=Instance.new("Frame"); row.Size=UDim2.new(1,0,0,28); row.BackgroundTransparency=1; row.Parent=recSF
+        local b1=Instance.new("TextButton"); b1.Size=UDim2.new(0.5,-3,1,0); b1.BackgroundColor3=c1; b1.Text=t1; b1.Font=Enum.Font.GothamBold; b1.TextSize=10; b1.TextColor3=Color3.fromRGB(255,120,120); b1.BorderSizePixel=0; b1.ZIndex=51; b1.Parent=row
+        Instance.new("UICorner",b1).CornerRadius=UDim.new(0,8)
+        b1.MouseEnter:Connect(function() TweenService:Create(b1,TweenInfo.new(0.1),{BackgroundColor3=c1:Lerp(Color3.fromRGB(255,255,255),0.15)}):Play() end)
+        b1.MouseLeave:Connect(function() TweenService:Create(b1,TweenInfo.new(0.1),{BackgroundColor3=c1}):Play() end)
+        local b2=Instance.new("TextButton"); b2.Size=UDim2.new(0.5,-3,1,0); b2.Position=UDim2.new(0.5,3,0,0); b2.BackgroundColor3=c2; b2.Text=t2; b2.Font=Enum.Font.GothamBold; b2.TextSize=10; b2.TextColor3=Color3.fromRGB(255,120,120); b2.BorderSizePixel=0; b2.ZIndex=51; b2.Parent=row
+        Instance.new("UICorner",b2).CornerRadius=UDim.new(0,8)
+        b2.MouseEnter:Connect(function() TweenService:Create(b2,TweenInfo.new(0.1),{BackgroundColor3=c2:Lerp(Color3.fromRGB(255,255,255),0.15)}):Play() end)
+        b2.MouseLeave:Connect(function() TweenService:Create(b2,TweenInfo.new(0.1),{BackgroundColor3=c2}):Play() end)
+        return b1,b2
+    end
+    mkFS("⬤  RECORDING")
+    local startRecBtn,stopRecBtn=mkFR2("⬤ Start Rec",Color3.fromRGB(30,5,5),"⏹ Stop Rec",Color3.fromRGB(50,5,5))
+    local pauseRecBtn,contRecBtn=mkFR2("⏸ Pause",Color3.fromRGB(40,20,5),"➕ Lanjut Rec",Color3.fromRGB(20,5,40))
+    local clearRecBtn,reverseBtn=mkFR2("🗑 Clear",Color3.fromRGB(60,5,5),"⟵ Reverse",Color3.fromRGB(10,30,60))
+    local function refreshRUI()
+        if isRecording and not isPaused then startRecBtn.Text="⬤ Rec..."; sLbl.Text="⬤ Recording | "..#recordedData.." poin"; sLbl.TextColor3=Color3.fromRGB(255,80,80); pauseRecBtn.Text="⏸ Pause"
+        elseif isRecording and isPaused then startRecBtn.Text="⬤ Paused"; sLbl.Text="⏸ Paused | "..#recordedData.." poin"; sLbl.TextColor3=Color3.fromRGB(255,200,80); pauseRecBtn.Text="▶ Resume"
+        else startRecBtn.Text="⬤ Start Rec"; sLbl.Text="● Idle | "..#recordedData.." poin"; sLbl.TextColor3=Color3.fromRGB(160,160,160); pauseRecBtn.Text="⏸ Pause" end
+    end
+    startRecBtn.MouseButton1Click:Connect(function() if isPlaying then notify("⚠ Error","Stop play dulu",2); return end; if not isRecording then startRecording(false) else stopRecording() end; refreshRUI() end)
+    stopRecBtn.MouseButton1Click:Connect(function() if isRecording then stopRecording() end; refreshRUI() end)
+    pauseRecBtn.MouseButton1Click:Connect(function()
+        if not isRecording then notify("⚠ Error","Tidak sedang rec",2); return end; isPaused=not isPaused
+        if isPaused then updateStatus("⏸ Paused","Resume untuk lanjut",Color3.fromRGB(255,180,0),Color3.fromRGB(220,155,0))
+        else updateStatus("⬤ Recording...","Gerak untuk rekam",Color3.fromRGB(255,80,80),Color3.fromRGB(255,60,60),true) end
+        refreshRUI()
+    end)
+    contRecBtn.MouseButton1Click:Connect(function()
+        if isPlaying then notify("⚠ Error","Stop play dulu",2); return end
+        if isRecording then notify("⚠ Error","Sudah rec",2); return end
+        if #recordedData==0 then notify("⚠ Error","Belum ada data",2); return end
+        startRecording(true); refreshRUI()
+    end)
+    clearRecBtn.MouseButton1Click:Connect(function()
+        if isPlaying then stopPlayback() end; if isRecording then stopRecording() end
+        if isEditMode then exitEditMode(false); eTogBtn.Text="✏ Edit Mode OFF"; eTogBtn.BackgroundColor3=Color3.fromRGB(120,60,0); eIL.Text="Point: —/—  State: —" end
+        recordedData={}; editIndex=1; updatePointsLabel(); clearRouteViz()
+        updateStatus("Cleared","Data dihapus",Color3.fromRGB(200,200,220),Color3.fromRGB(80,80,80))
+        notify("🗑 Cleared","Data dihapus",2); updateStats(); refreshRUI()
+    end)
+    reverseBtn.MouseButton1Click:Connect(function()
+        if #recordedData>1 then
+            local rev={}; for i=#recordedData,1,-1 do rev[#rev+1]=recordedData[i] end; recordedData=rev
+            updatePointsLabel(); if showRoute then buildRouteViz() end; notify("↩ Reversed","Arah dibalik",2)
+        end
+    end)
+    mkFS("🗺  ROUTE")
+    local rvRow=Instance.new("Frame"); rvRow.Size=UDim2.new(1,0,0,28); rvRow.BackgroundTransparency=1; rvRow.Parent=recSF
+    local sRBtn=Instance.new("TextButton"); sRBtn.Size=UDim2.new(0.5,-3,1,0); sRBtn.BackgroundColor3=Color3.fromRGB(20,50,100); sRBtn.Text="👁 Show"; sRBtn.TextColor3=Color3.fromRGB(180,220,255); sRBtn.Font=Enum.Font.GothamSemibold; sRBtn.TextSize=10; sRBtn.BorderSizePixel=0; sRBtn.ZIndex=51; sRBtn.Parent=rvRow
+    Instance.new("UICorner",sRBtn).CornerRadius=UDim.new(0,7)
+    local hRBtn=Instance.new("TextButton"); hRBtn.Size=UDim2.new(0.5,-3,1,0); hRBtn.Position=UDim2.new(0.5,3,0,0); hRBtn.BackgroundColor3=Color3.fromRGB(60,20,60); hRBtn.Text="🚫 Hide"; hRBtn.TextColor3=Color3.fromRGB(220,160,220); hRBtn.Font=Enum.Font.GothamSemibold; hRBtn.TextSize=10; hRBtn.BorderSizePixel=0; hRBtn.ZIndex=51; hRBtn.Parent=rvRow
+    Instance.new("UICorner",hRBtn).CornerRadius=UDim.new(0,7)
+    sRBtn.MouseButton1Click:Connect(function() showRoute=true; buildRouteViz(); notify("👁 Route","ON",2) end)
+    hRBtn.MouseButton1Click:Connect(function() showRoute=false; clearRouteViz(); local f=workspace:FindFirstChild("_WALK_Route"); if f then f:Destroy() end; notify("🚫 Route","OFF",2) end)
+    mkFS("✏  EDIT")
+    local ePF=Instance.new("Frame"); ePF.Size=UDim2.new(1,0,0,110); ePF.BackgroundColor3=Color3.fromRGB(22,14,5); ePF.BorderSizePixel=0; ePF.Parent=recSF
+    Instance.new("UICorner",ePF).CornerRadius=UDim.new(0,8)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(255,140,0); sk.Thickness=1; sk.Transparency=0.5; sk.Parent=ePF end
+    local eBR=Instance.new("Frame"); eBR.Size=UDim2.new(1,-10,0,26); eBR.Position=UDim2.new(0,5,0,5); eBR.BackgroundTransparency=1; eBR.Parent=ePF
+    local eTogBtn=Instance.new("TextButton"); eTogBtn.Size=UDim2.new(0.58,-2,1,0); eTogBtn.BackgroundColor3=Color3.fromRGB(120,60,0); eTogBtn.Text="✏ Edit Mode OFF"; eTogBtn.TextColor3=Color3.fromRGB(255,255,255); eTogBtn.Font=Enum.Font.GothamSemibold; eTogBtn.TextSize=10; eTogBtn.BorderSizePixel=0; eTogBtn.ZIndex=51; eTogBtn.Parent=eBR
+    Instance.new("UICorner",eTogBtn).CornerRadius=UDim.new(0,6)
+    local eCancelBtn=Instance.new("TextButton"); eCancelBtn.Size=UDim2.new(0.42,-2,1,0); eCancelBtn.Position=UDim2.new(0.58,2,0,0); eCancelBtn.BackgroundColor3=Color3.fromRGB(90,15,15); eCancelBtn.Text="✕ Cancel"; eCancelBtn.TextColor3=Color3.fromRGB(255,180,180); eCancelBtn.Font=Enum.Font.GothamSemibold; eCancelBtn.TextSize=10; eCancelBtn.BorderSizePixel=0; eCancelBtn.ZIndex=51; eCancelBtn.Parent=eBR
+    Instance.new("UICorner",eCancelBtn).CornerRadius=UDim.new(0,6)
+    local eIL=Instance.new("TextLabel"); eIL.Size=UDim2.new(1,-10,0,13); eIL.Position=UDim2.new(0,5,0,35); eIL.BackgroundTransparency=1; eIL.Text="Point: —/—  State: —"; eIL.TextColor3=Color3.fromRGB(255,180,60); eIL.Font=Enum.Font.Gotham; eIL.TextSize=8; eIL.TextXAlignment=Enum.TextXAlignment.Left; eIL.ZIndex=51; eIL.Parent=ePF
+    local navR=Instance.new("Frame"); navR.Size=UDim2.new(1,-10,0,26); navR.Position=UDim2.new(0,5,0,52); navR.BackgroundTransparency=1; navR.Parent=ePF
+    local function mkNB(txt,col,xPct,wPct)
+        local b=Instance.new("TextButton"); b.Size=UDim2.new(wPct,-3,1,0); b.Position=UDim2.new(xPct,2,0,0); b.BackgroundColor3=col; b.Text=txt; b.TextColor3=Color3.fromRGB(255,255,255); b.Font=Enum.Font.GothamBold; b.TextSize=10; b.BorderSizePixel=0; b.ZIndex=51; b.Parent=navR
+        Instance.new("UICorner",b).CornerRadius=UDim.new(0,6)
+        b.MouseEnter:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundColor3=col:Lerp(Color3.fromRGB(255,255,255),0.2)}):Play() end)
+        b.MouseLeave:Connect(function() TweenService:Create(b,TweenInfo.new(0.1),{BackgroundColor3=col}):Play() end)
+        return b
+    end
+    local bBk=mkNB("◀◀",Color3.fromRGB(50,60,120),0,0.20); local bBkS=mkNB("◀",Color3.fromRGB(40,50,100),0.20,0.16)
+    local bApp=mkNB("✔OK",Color3.fromRGB(0,110,50),0.36,0.28); local bFwS=mkNB("▶",Color3.fromRGB(40,50,100),0.64,0.16); local bFw=mkNB("▶▶",Color3.fromRGB(50,60,120),0.80,0.20)
+    local tIF=Instance.new("TextLabel"); tIF.Size=UDim2.new(1,-10,0,11); tIF.Position=UDim2.new(0,5,0,82); tIF.BackgroundTransparency=1; tIF.Text="✔OK = potong track"; tIF.TextColor3=Color3.fromRGB(150,200,150); tIF.Font=Enum.Font.Gotham; tIF.TextSize=7; tIF.TextXAlignment=Enum.TextXAlignment.Left; tIF.ZIndex=51; tIF.Parent=ePF
+    local holdCF=nil
+    local function startHold(dir,step) if holdCF then holdCF:Disconnect(); holdCF=nil end; local t=0
+        holdCF=RunService.Heartbeat:Connect(function(dt) t=t+dt; if t>=0.3 then editIndex=math.clamp(editIndex+dir*step,1,#recordedData); updateEditCursor(eIL); t=t-0.06 end end)
+    end
+    local function stopHold() if holdCF then holdCF:Disconnect(); holdCF=nil end end
+    local function chkEdit() if not isEditMode then notify("⚠ Error","Aktifkan Edit Mode dulu",2); return false end; return true end
+    bBk.MouseButton1Down:Connect(function() if not chkEdit() then return end; editIndex=math.max(1,editIndex-10); updateEditCursor(eIL); startHold(-1,10) end); bBk.MouseButton1Up:Connect(stopHold); bBk.MouseLeave:Connect(stopHold)
+    bBkS.MouseButton1Down:Connect(function() if not chkEdit() then return end; editIndex=math.max(1,editIndex-1); updateEditCursor(eIL); startHold(-1,1) end); bBkS.MouseButton1Up:Connect(stopHold); bBkS.MouseLeave:Connect(stopHold)
+    bFwS.MouseButton1Down:Connect(function() if not chkEdit() then return end; editIndex=math.min(#recordedData,editIndex+1); updateEditCursor(eIL); startHold(1,1) end); bFwS.MouseButton1Up:Connect(stopHold); bFwS.MouseLeave:Connect(stopHold)
+    bFw.MouseButton1Down:Connect(function() if not chkEdit() then return end; editIndex=math.min(#recordedData,editIndex+10); updateEditCursor(eIL); startHold(1,10) end); bFw.MouseButton1Up:Connect(stopHold); bFw.MouseLeave:Connect(stopHold)
+    bApp.MouseButton1Click:Connect(function()
+        if not isEditMode then notify("⚠ Error","Aktifkan Edit Mode dulu",2); return end
+        local trimmed={}; for i=1,editIndex do trimmed[i]={Position=recordedData[i].Position,CFrame=recordedData[i].CFrame,Time=recordedData[i].Time,State=recordedData[i].State,Velocity=recordedData[i].Velocity,WalkSpeed=recordedData[i].WalkSpeed} end
+        recordedData=trimmed; updatePointsLabel(); notify("✅ Applied","Dipotong: "..editIndex.." poin",3)
+        eTogBtn.Text="✏ Edit Mode OFF"; eTogBtn.BackgroundColor3=Color3.fromRGB(120,60,0); exitEditMode(false); eIL.Text="Point: —/—  State: —"; updateStats()
+    end)
+    eTogBtn.MouseButton1Click:Connect(function()
+        if isEditMode then exitEditMode(false); eTogBtn.Text="✏ Edit Mode OFF"; eTogBtn.BackgroundColor3=Color3.fromRGB(120,60,0); eIL.Text="Point: —/—  State: —"
+        else enterEditMode(); if isEditMode then eTogBtn.Text="✏ Edit Mode ON"; eTogBtn.BackgroundColor3=Color3.fromRGB(200,100,0); updateEditCursor(eIL) end end
+    end)
+    eCancelBtn.MouseButton1Click:Connect(function() if isEditMode then exitEditMode(true); eTogBtn.Text="✏ Edit Mode OFF"; eTogBtn.BackgroundColor3=Color3.fromRGB(120,60,0); eIL.Text="Point: —/—  State: —" end end)
+    -- Freemove toggle: bisa jalan keluar rute saat edit
+    local fmRow=Instance.new("Frame"); fmRow.Size=UDim2.new(1,-10,0,22); fmRow.Position=UDim2.new(0,5,0,88); fmRow.BackgroundTransparency=1; fmRow.Parent=ePF
+    local fmBtn=Instance.new("TextButton"); fmBtn.Size=UDim2.new(1,0,1,0); fmBtn.BackgroundColor3=Color3.fromRGB(20,50,80); fmBtn.Text="🚶 Free Move: OFF (dikunci di rute)"; fmBtn.TextColor3=Color3.fromRGB(150,200,255); fmBtn.Font=Enum.Font.GothamBold; fmBtn.TextSize=8; fmBtn.BorderSizePixel=0; fmBtn.ZIndex=51; fmBtn.Parent=fmRow
+    Instance.new("UICorner",fmBtn).CornerRadius=UDim.new(0,5)
+    fmBtn.MouseButton1Click:Connect(function()
+        editFreemove=not editFreemove
+        if editFreemove then
+            fmBtn.Text="🚶 Free Move: ON (bisa jalan bebas)"; fmBtn.BackgroundColor3=Color3.fromRGB(0,100,50)
+            notify("🚶 Free Move","ON — bisa jalan keluar rute",2)
+        else
+            fmBtn.Text="🚶 Free Move: OFF (dikunci di rute)"; fmBtn.BackgroundColor3=Color3.fromRGB(20,50,80)
+            -- Snap kembali ke titik edit saat lock
+            if isEditMode and editTargetCFrame and rootPart then
+                rootPart.CFrame=editTargetCFrame
+            end
+            notify("🔒 Locked","Kembali dikunci di titik rute",2)
+        end
+    end)
+    -- Expand ePF height to fit freemove button
+    ePF.Size=UDim2.new(1,0,0,118)
+    mkFS("💾  SAVE / LOAD")
+    -- Row 1: [textbox nama file] [💾 SAVE]
+    local svRow=Instance.new("Frame"); svRow.Size=UDim2.new(1,0,0,30); svRow.BackgroundTransparency=1; svRow.Parent=recSF
+    local svBox=Instance.new("TextBox"); svBox.Size=UDim2.new(0.62,-3,1,0); svBox.BackgroundColor3=Color3.fromRGB(30,10,10); svBox.Text=""; svBox.PlaceholderText="Nama walk..."; svBox.TextColor3=Color3.fromRGB(255,220,220); svBox.PlaceholderColor3=Color3.fromRGB(120,80,80); svBox.Font=Enum.Font.Gotham; svBox.TextSize=10; svBox.ClearTextOnFocus=false; svBox.BorderSizePixel=0; svBox.ZIndex=51; svBox.Parent=svRow
+    Instance.new("UICorner",svBox).CornerRadius=UDim.new(0,6)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(150,50,50); sk.Thickness=1; sk.Parent=svBox end
+    local svBtn=Instance.new("TextButton"); svBtn.Size=UDim2.new(0.38,-3,1,0); svBtn.Position=UDim2.new(0.62,3,0,0); svBtn.BackgroundColor3=Color3.fromRGB(120,40,0); svBtn.Text="💾 Save"; svBtn.TextColor3=Color3.fromRGB(255,200,180); svBtn.Font=Enum.Font.GothamBold; svBtn.TextSize=10; svBtn.BorderSizePixel=0; svBtn.ZIndex=51; svBtn.Parent=svRow
+    Instance.new("UICorner",svBtn).CornerRadius=UDim.new(0,6)
+    -- Row 2: label file yang dipilih
+    local recSelFrame=Instance.new("Frame"); recSelFrame.Size=UDim2.new(1,0,0,20); recSelFrame.BackgroundColor3=Color3.fromRGB(10,20,10); recSelFrame.BorderSizePixel=0; recSelFrame.ZIndex=51; recSelFrame.Parent=recSF
+    Instance.new("UICorner",recSelFrame).CornerRadius=UDim.new(0,5)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,120,50); sk.Thickness=1; sk.Transparency=0.5; sk.Parent=recSelFrame end
+    local recSelTxt=Instance.new("TextLabel"); recSelTxt.Size=UDim2.new(1,-8,1,0); recSelTxt.Position=UDim2.new(0,4,0,0); recSelTxt.BackgroundTransparency=1; recSelTxt.Text="— belum pilih file —"; recSelTxt.TextColor3=Color3.fromRGB(100,160,100); recSelTxt.Font=Enum.Font.Gotham; recSelTxt.TextSize=9; recSelTxt.TextXAlignment=Enum.TextXAlignment.Left; recSelTxt.TextTruncate=Enum.TextTruncate.AtEnd; recSelTxt.ZIndex=52; recSelTxt.Parent=recSelFrame
+    -- State: nama file yang dipilih (nil = belum pilih)
+    local recSelFile=nil
+    -- Row 3: [📂 PILIH FILE ▾]
+    local ldBtn=Instance.new("TextButton"); ldBtn.Size=UDim2.new(1,0,0,26); ldBtn.BackgroundColor3=Color3.fromRGB(40,15,5); ldBtn.Text="📂 Pilih File ▾"; ldBtn.TextColor3=Color3.fromRGB(255,180,120); ldBtn.Font=Enum.Font.GothamSemibold; ldBtn.TextSize=10; ldBtn.BorderSizePixel=0; ldBtn.ZIndex=51; ldBtn.Parent=recSF
+    Instance.new("UICorner",ldBtn).CornerRadius=UDim.new(0,6)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(150,60,20); sk.Thickness=1; sk.Parent=ldBtn end
+    task.defer(function() local fc=#listSaveFiles(); if fc>0 then ldBtn.Text="📂 Pilih File ("..fc..") ▾" end end)
+    -- Row 4: [📥 LOAD FILE] — execute load dari recSelFile
+    local loadFileBtn=Instance.new("TextButton"); loadFileBtn.Size=UDim2.new(1,0,0,26); loadFileBtn.BackgroundColor3=Color3.fromRGB(0,80,30); loadFileBtn.Text="📥 LOAD FILE"; loadFileBtn.TextColor3=Color3.fromRGB(160,255,190); loadFileBtn.Font=Enum.Font.GothamBold; loadFileBtn.TextSize=10; loadFileBtn.BorderSizePixel=0; loadFileBtn.ZIndex=51; loadFileBtn.Parent=recSF
+    Instance.new("UICorner",loadFileBtn).CornerRadius=UDim.new(0,6)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,200,80); sk.Thickness=1; sk.Parent=loadFileBtn end
+    -- SAVE handler
+    svBtn.MouseButton1Click:Connect(function()
+        local name=svBox.Text:gsub("[^%w_%-]",""); if name=="" then notify("⚠ Error","Masukkan nama file",2); return end
+        if #recordedData==0 then notify("⚠ Error","Tidak ada data",2); return end
+        task.defer(function()
+            local ok2=saveToFile(name,recordedData)
+            if ok2 then svBox.Text=""; updateStats(); notify("💾 Saved",name.." ("..#recordedData.." poin)",2)
+                local fc2=#listSaveFiles(); ldBtn.Text=(fc2>0) and ("📂 Pilih File ("..fc2..") ▾") or "📂 Pilih File ▾"
+            else notify("⚠ Error","Gagal save",2) end
+        end)
+    end)
+    -- DROPDOWN: hanya SELECT file, TIDAK langsung load
+    ldBtn.MouseButton1Click:Connect(function()
+        local names=listSaveFiles(); if #names==0 then notify("📂","Belum ada save",2); return end
+        if activeDropdown then activeDropdown:Destroy(); activeDropdown=nil end
+        local IH=28; local visH=math.min(#names*IH+8,220)
+        local pop=Instance.new("Frame"); pop.Size=UDim2.new(0,240,0,visH); pop.BackgroundColor3=Color3.fromRGB(18,8,3); pop.BorderSizePixel=0; pop.ZIndex=300; pop.Parent=screenGui
+        Instance.new("UICorner",pop).CornerRadius=UDim.new(0,9)
+        do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(180,80,30); sk.Thickness=1; sk.Parent=pop end
+        local sf2=Instance.new("ScrollingFrame"); sf2.Size=UDim2.new(1,0,1,0); sf2.BackgroundTransparency=1; sf2.ScrollBarThickness=3; sf2.ScrollBarImageColor3=Color3.fromRGB(255,100,50); sf2.CanvasSize=UDim2.new(0,0,0,#names*IH+8); sf2.BorderSizePixel=0; sf2.ZIndex=300; sf2.Parent=pop
+        local ul3=Instance.new("UIListLayout"); ul3.Padding=UDim.new(0,2); ul3.SortOrder=Enum.SortOrder.LayoutOrder; ul3.Parent=sf2
+        local pd3=Instance.new("UIPadding"); pd3.PaddingTop=UDim.new(0,4); pd3.PaddingLeft=UDim.new(0,4); pd3.PaddingRight=UDim.new(0,4); pd3.Parent=sf2
+        local recItemBtns={}
+        for _,name in ipairs(names) do
+            local isSel=(name==recSelFile)
+            local ob=Instance.new("TextButton"); ob.Size=UDim2.new(1,0,0,IH-3)
+            ob.BackgroundColor3=isSel and Color3.fromRGB(0,90,35) or Color3.fromRGB(50,20,10)
+            ob.Text=(isSel and "✓ " or "📄 ")..name; ob.TextColor3=isSel and Color3.fromRGB(160,255,190) or Color3.fromRGB(255,200,150)
+            ob.Font=Enum.Font.GothamSemibold; ob.TextSize=10; ob.BorderSizePixel=0; ob.ZIndex=300; ob.Parent=sf2
+            Instance.new("UICorner",ob).CornerRadius=UDim.new(0,6)
+            recItemBtns[name]=ob
+            ob.MouseButton1Click:Connect(function()
+                -- Hanya SELECT, jangan load
+                recSelFile=name
+                recSelTxt.Text="✓ "..name; recSelTxt.TextColor3=Color3.fromRGB(100,255,150)
+                ldBtn.Text="📂 "..name.." ▾"
+                for n2,ob2 in pairs(recItemBtns) do
+                    ob2.BackgroundColor3=(n2==name) and Color3.fromRGB(0,90,35) or Color3.fromRGB(50,20,10)
+                    ob2.Text=((n2==name) and "✓ " or "📄 ")..n2
+                    ob2.TextColor3=(n2==name) and Color3.fromRGB(160,255,190) or Color3.fromRGB(255,200,150)
+                end
+                pop:Destroy(); activeDropdown=nil; notify("📄 Dipilih",name,1)
+            end)
+            ob.MouseEnter:Connect(function() if name~=recSelFile then ob.BackgroundColor3=Color3.fromRGB(75,35,12) end end)
+            ob.MouseLeave:Connect(function() if name~=recSelFile then ob.BackgroundColor3=Color3.fromRGB(50,20,10) end end)
+        end
+        local aY=ldBtn.AbsolutePosition.Y+ldBtn.AbsoluteSize.Y+4; local aX=ldBtn.AbsolutePosition.X
+        if aY+visH>screenGui.AbsoluteSize.Y then aY=ldBtn.AbsolutePosition.Y-visH-4 end
+        pop.Position=UDim2.new(0,aX,0,aY); activeDropdown=pop
+        local cc2; cc2=UserInputService.InputBegan:Connect(function(inp)
+            if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+                task.delay(0.15,function()
+                    if activeDropdown~=pop then cc2:Disconnect(); return end
+                    local mp=UserInputService:GetMouseLocation(); local pp=pop.AbsolutePosition; local ps=pop.AbsoluteSize
+                    if not(mp.X>=pp.X and mp.X<=pp.X+ps.X and mp.Y>=pp.Y and mp.Y<=pp.Y+ps.Y) then
+                        if activeDropdown==pop then pop:Destroy(); activeDropdown=nil end
+                        cc2:Disconnect()
+                    end
+                end)
+            end
+        end)
+    end)
+    -- LOAD FILE: execute load dari recSelFile yang sudah dipilih
+    loadFileBtn.MouseButton1Click:Connect(function()
+        if not recSelFile then notify("⚠","Pilih file dulu dari dropdown di atas",2); return end
+        task.defer(function()
+            local loaded=loadFromFile(recSelFile)
+            if loaded then
+                recordedData=loaded; editIndex=1; updatePointsLabel()
+                updateStatus("Loaded: "..recSelFile,"Press ▶",Color3.fromRGB(0,220,255),Color3.fromRGB(0,180,255))
+                if showRoute then buildRouteViz() end
+                notify("✅ Loaded",recSelFile.." ("..#loaded.." poin)",2); updateStats(); refreshRUI()
+                recSelFile=nil; recSelTxt.Text="— belum pilih file —"; recSelTxt.TextColor3=Color3.fromRGB(100,160,100)
+                local fc2=#listSaveFiles(); ldBtn.Text=(fc2>0) and ("📂 Pilih File ("..fc2..") ▾") or "📂 Pilih File ▾"
+            else
+                -- Debug: kasih tau kenapa gagal
+                local dbg=""
+                pcall(function()
+                    local hasFolder=isfolder(SAVE_FOLDER)
+                    local files=listfiles(SAVE_FOLDER) or {}
+                    dbg="folder="..(hasFolder and "YES" or "NO").." files="..#files
+                end)
+                notify("⚠ Gagal Load",recSelFile.." | "..dbg,5)
+            end
+        end)
+    end)
+    -- ═══════════════════════════════════════════
+    -- WEB ROUTE LOAD — v1.4 Feature
+    -- ═══════════════════════════════════════════
+    mkFS("🌐  LOAD RUTE DARI WEB")
+    -- Info label
+    local wrInfoLbl=Instance.new("TextLabel"); wrInfoLbl.Size=UDim2.new(1,0,0,20); wrInfoLbl.BackgroundTransparency=1
+    wrInfoLbl.Text="Masukkan URL rute atau Kode Rute dari website"; wrInfoLbl.TextColor3=Color3.fromRGB(140,170,200)
+    wrInfoLbl.Font=Enum.Font.Gotham; wrInfoLbl.TextSize=8; wrInfoLbl.TextWrapped=true
+    wrInfoLbl.TextXAlignment=Enum.TextXAlignment.Left; wrInfoLbl.ZIndex=51; wrInfoLbl.Parent=recSF
+    -- URL / Code input row
+    local wrInputRow=Instance.new("Frame"); wrInputRow.Size=UDim2.new(1,0,0,28); wrInputRow.BackgroundTransparency=1; wrInputRow.Parent=recSF
+    local wrBox=Instance.new("TextBox"); wrBox.Size=UDim2.new(1,0,1,0)
+    wrBox.BackgroundColor3=Color3.fromRGB(8,22,45); wrBox.Text=""; wrBox.PlaceholderText="https://... atau Kode Rute (AWR-XXXXX)"
+    wrBox.TextColor3=Color3.fromRGB(100,200,255); wrBox.PlaceholderColor3=Color3.fromRGB(50,80,110)
+    wrBox.Font=Enum.Font.Gotham; wrBox.TextSize=9; wrBox.ClearTextOnFocus=false; wrBox.BorderSizePixel=0; wrBox.ZIndex=51; wrBox.Parent=wrInputRow
+    Instance.new("UICorner",wrBox).CornerRadius=UDim.new(0,6)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,100,200); sk.Thickness=1; sk.Parent=wrBox end
+    -- Buttons row
+    local wrBtnRow=Instance.new("Frame"); wrBtnRow.Size=UDim2.new(1,0,0,28); wrBtnRow.BackgroundTransparency=1; wrBtnRow.Parent=recSF
+    local wrLoadBtn=Instance.new("TextButton"); wrLoadBtn.Size=UDim2.new(0.6,-3,1,0)
+    wrLoadBtn.BackgroundColor3=Color3.fromRGB(0,70,160); wrLoadBtn.Text="🌐 Load dari Web"; wrLoadBtn.TextColor3=Color3.fromRGB(150,210,255)
+    wrLoadBtn.Font=Enum.Font.GothamBold; wrLoadBtn.TextSize=10; wrLoadBtn.BorderSizePixel=0; wrLoadBtn.ZIndex=51; wrLoadBtn.Parent=wrBtnRow
+    Instance.new("UICorner",wrLoadBtn).CornerRadius=UDim.new(0,6)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,140,255); sk.Thickness=1; sk.Parent=wrLoadBtn end
+    local wrAppendBtn=Instance.new("TextButton"); wrAppendBtn.Size=UDim2.new(0.4,-3,1,0); wrAppendBtn.Position=UDim2.new(0.6,3,0,0)
+    wrAppendBtn.BackgroundColor3=Color3.fromRGB(0,60,80); wrAppendBtn.Text="➕ Sambung"; wrAppendBtn.TextColor3=Color3.fromRGB(100,220,200)
+    wrAppendBtn.Font=Enum.Font.GothamBold; wrAppendBtn.TextSize=9; wrAppendBtn.BorderSizePixel=0; wrAppendBtn.ZIndex=51; wrAppendBtn.Parent=wrBtnRow
+    Instance.new("UICorner",wrAppendBtn).CornerRadius=UDim.new(0,6)
+    do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,160,140); sk.Thickness=1; sk.Parent=wrAppendBtn end
+    -- Status label
+    local wrStatus=Instance.new("TextLabel"); wrStatus.Size=UDim2.new(1,0,0,14); wrStatus.BackgroundTransparency=1
+    wrStatus.Text=""; wrStatus.TextColor3=Color3.fromRGB(100,255,150); wrStatus.Font=Enum.Font.Gotham
+    wrStatus.TextSize=8; wrStatus.TextWrapped=true; wrStatus.TextXAlignment=Enum.TextXAlignment.Left; wrStatus.ZIndex=51; wrStatus.Parent=recSF
+
+    -- Helper: resolve URL dari input (support kode pendek atau URL penuh)
+    local WEB_ROUTE_BASE = "https://marksanzxmzz.vercel.app/api/route?code="
+    local function resolveRouteURL(inp)
+        inp = inp:gsub("%s+","")
+        if inp:sub(1,4):lower()=="http" then return inp end
+        -- Anggap sebagai kode: AWR-XXXXX atau langsung code
+        local code = inp:match("^AWR%-(.+)$") or inp
+        return WEB_ROUTE_BASE..code
+    end
+
+    local function doWebLoad(append)
+        local urlRaw=wrBox.Text:gsub("%s+","")
+        if #urlRaw<3 then wrStatus.TextColor3=Color3.fromRGB(255,130,60); wrStatus.Text="⚠ Masukkan URL atau kode rute dulu"; return end
+        local url=resolveRouteURL(urlRaw)
+        wrLoadBtn.Text="⏳ Loading..."; wrLoadBtn.Active=false; wrAppendBtn.Active=false
+        wrStatus.TextColor3=Color3.fromRGB(100,180,255); wrStatus.Text="🔄 Menghubungi server..."
+        task.defer(function()
+            local raw=httpGet(url)
+            if not raw or #raw<5 then
+                wrStatus.TextColor3=Color3.fromRGB(255,80,80); wrStatus.Text="❌ Gagal: server tidak merespons / URL salah"
+                wrLoadBtn.Text="🌐 Load dari Web"; wrLoadBtn.Active=true; wrAppendBtn.Active=true; return
+            end
+            local ok2,loaded=pcall(function()
+                -- Coba decode JSON → deserialize sebagai route data
+                local hs=game:GetService("HttpService")
+                local decoded=hs:JSONDecode(raw)
+                -- Format 1: {points=[...]} wrapper dari server
+                if decoded.points then return deserializeData(hs:JSONEncode(decoded.points)) end
+                -- Format 2: {data="<json string>"} wrapper
+                if decoded.data and type(decoded.data)=="string" then return deserializeData(decoded.data) end
+                -- Format 3: langsung array
+                if type(decoded)=="table" and decoded[1] and decoded[1].px then return deserializeData(raw) end
+                -- Format 4: mungkin raw JSON array langsung
+                return deserializeData(raw)
+            end)
+            if ok2 and loaded and #loaded>=2 then
+                if append then
+                    for _,d in ipairs(loaded) do table.insert(recordedData,d) end
+                    wrStatus.TextColor3=Color3.fromRGB(100,255,150)
+                    wrStatus.Text="✅ Ditambahkan "..#loaded.." titik → total "..#recordedData
+                    notify("✅ Web Route Sambung","+"..#loaded.." titik dari web",3)
+                else
+                    recordedData=loaded; editIndex=1
+                    wrStatus.TextColor3=Color3.fromRGB(100,255,150)
+                    wrStatus.Text="✅ Loaded "..#loaded.." titik dari web!"
+                    notify("🌐 Web Route Loaded",#loaded.." titik berhasil dimuat",3)
+                end
+                updatePointsLabel(); updateStats(); refreshRUI()
+                if showRoute then buildRouteViz() end
+                wrBox.Text=""
+            else
+                local errMsg=ok2 and "Format tidak dikenal" or tostring(loaded):sub(1,60)
+                wrStatus.TextColor3=Color3.fromRGB(255,80,80); wrStatus.Text="❌ Parse error: "..errMsg
+                notify("⚠ Web Route","Gagal parse data: "..errMsg:sub(1,40),4)
+            end
+            wrLoadBtn.Text="🌐 Load dari Web"; wrLoadBtn.Active=true; wrAppendBtn.Active=true
+        end)
+    end
+    wrLoadBtn.MouseButton1Click:Connect(function() doWebLoad(false) end)
+    wrAppendBtn.MouseButton1Click:Connect(function() doWebLoad(true) end)
+    wrLoadBtn.MouseEnter:Connect(function() TweenService:Create(wrLoadBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,100,200)}):Play() end)
+    wrLoadBtn.MouseLeave:Connect(function() TweenService:Create(wrLoadBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,70,160)}):Play() end)
+    wrAppendBtn.MouseEnter:Connect(function() TweenService:Create(wrAppendBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,90,110)}):Play() end)
+    wrAppendBtn.MouseLeave:Connect(function() TweenService:Create(wrAppendBtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(0,60,80)}):Play() end)
+
+    -- DEBUG button (cek file system)
+    local dbgBtn=Instance.new("TextButton"); dbgBtn.Size=UDim2.new(1,0,0,20); dbgBtn.BackgroundColor3=Color3.fromRGB(30,30,30); dbgBtn.Text="🔧 Debug File System"; dbgBtn.TextColor3=Color3.fromRGB(150,150,150); dbgBtn.Font=Enum.Font.Gotham; dbgBtn.TextSize=8; dbgBtn.BorderSizePixel=0; dbgBtn.ZIndex=51; dbgBtn.Parent=recSF
+    Instance.new("UICorner",dbgBtn).CornerRadius=UDim.new(0,4)
+    dbgBtn.MouseButton1Click:Connect(function()
+        task.defer(function()
+            local info=""
+            -- Test 1: apakah listfiles ada
+            info=info.."listfiles="..(type(listfiles)=="function" and "OK" or "MISSING").." | "
+            -- Test 2: apakah readfile ada
+            info=info.."readfile="..(type(readfile)=="function" and "OK" or "MISSING").." | "
+            -- Test 3: cek folder
+            local hasF=false; pcall(function() hasF=isfolder(SAVE_FOLDER) end)
+            info=info.."folder="..SAVE_FOLDER.."="..(hasF and "ADA" or "TIDAK ADA").." | "
+            -- Test 4: list file
+            local fc=0; pcall(function() fc=#listfiles(SAVE_FOLDER) end)
+            info=info.."files="..fc
+            -- Test 5: listSaveFiles result
+            local names=listSaveFiles()
+            info=info.." | listSaveFiles="..#names
+            notify("🔧 Debug",info,8)
+            print("[AWR DEBUG]",info)
+        end)
+    end)
+    local hbConn=RunService.Heartbeat:Connect(function() if not gui.Parent then return end; if isRecording and not isPaused then sLbl.Text="⬤ Rec | "..#recordedData.." poin" end end)
+    local min2=false
+    minR.MouseButton1Click:Connect(function() min2=not min2; TweenService:Create(gui,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=min2 and UDim2.new(0,270,0,40) or UDim2.new(0,270,0,520)}):Play(); recSF.Visible=not min2; minR.Text=min2 and "྾" or "－" end)
+    clsR.MouseButton1Click:Connect(function() hbConn:Disconnect(); TweenService:Create(gui,TweenInfo.new(0.18),{Size=UDim2.new(0,0,0,0)}):Play(); task.delay(0.2,function() gui:Destroy(); recFloating=nil end) end)
+    refreshRUI(); recFloating=gui
+end
+
+-- ════════════════════════════════════════════════
+-- FLOATING PLAYBACK PANEL (GLOW)
+-- ════════════════════════════════════════════════
+local playFloating=nil
+local function createPlaybackFloat()
+    if playFloating then playFloating:Destroy(); playFloating=nil end
+    local PW=260; local HW=-(PW//2)
+    local wrapper=Instance.new("Frame"); wrapper.Name="_AWR_PlayGlow"; wrapper.Size=UDim2.new(0,PW,0,148); wrapper.BackgroundTransparency=1; wrapper.BorderSizePixel=0; wrapper.Active=true; wrapper.ZIndex=90; wrapper.Parent=screenGui
+    local GR=Color3.fromRGB(215,35,35); local GRB=Color3.fromRGB(255,80,80); local GG=Color3.fromRGB(40,200,80); local GGD=Color3.fromRGB(20,100,40); local GDK=Color3.fromRGB(20,20,20); local GBG=Color3.fromRGB(12,12,12)
+    local function mkP(yOff,h)
+        local f=Instance.new("Frame"); f.Size=UDim2.new(1,0,0,h); f.Position=UDim2.new(0,0,0,yOff); f.BackgroundColor3=GBG; f.BorderSizePixel=0; f.ZIndex=90; f.Parent=wrapper
+        Instance.new("UICorner",f).CornerRadius=UDim.new(0,6)
+        local s=Instance.new("UIStroke"); s.Color=GR; s.Thickness=1.5; s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; s.Parent=f; return f,s
+    end
+    local function mkB(par,label,w,h,col)
+        col=col or GR
+        local btn=Instance.new("TextButton"); btn.Size=UDim2.new(0,w,0,h); btn.BackgroundColor3=GDK; btn.Text=""; btn.AutoButtonColor=false; btn.BorderSizePixel=0; btn.ZIndex=92; btn.Parent=par
+        Instance.new("UICorner",btn).CornerRadius=UDim.new(0,5)
+        local sk=Instance.new("UIStroke"); sk.Color=col; sk.Thickness=1.2; sk.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; sk.Parent=btn
+        local lbl=Instance.new("TextLabel"); lbl.Size=UDim2.new(1,0,1,0); lbl.BackgroundTransparency=1; lbl.Text=label; lbl.TextColor3=col; lbl.Font=Enum.Font.GothamBold; lbl.TextSize=8; lbl.ZIndex=93; lbl.Parent=btn
+        btn.MouseEnter:Connect(function() TweenService:Create(btn,TweenInfo.new(0.08),{BackgroundColor3=Color3.fromRGB(35,8,8)}):Play(); TweenService:Create(lbl,TweenInfo.new(0.08),{TextColor3=GRB}):Play(); TweenService:Create(sk,TweenInfo.new(0.08),{Thickness=2}):Play() end)
+        btn.MouseLeave:Connect(function() TweenService:Create(btn,TweenInfo.new(0.08),{BackgroundColor3=GDK}):Play(); TweenService:Create(lbl,TweenInfo.new(0.08),{TextColor3=col}):Play(); TweenService:Create(sk,TweenInfo.new(0.08),{Thickness=1.2}):Play() end)
+        btn.MouseButton1Down:Connect(function() TweenService:Create(lbl,TweenInfo.new(0.04),{TextColor3=Color3.new(1,1,1)}):Play() end)
+        btn.MouseButton1Up:Connect(function() TweenService:Create(lbl,TweenInfo.new(0.08),{TextColor3=col}):Play() end)
+        return btn,lbl,sk
+    end
+    local titleP,_=mkP(0,22)
+    local titLbl=Instance.new("TextLabel"); titLbl.Size=UDim2.new(1,-52,1,0); titLbl.Position=UDim2.new(0,8,0,0); titLbl.BackgroundTransparency=1; titLbl.Text="🎮 PLAY PANEL"; titLbl.TextColor3=GR; titLbl.Font=Enum.Font.GothamBold; titLbl.TextSize=9; titLbl.TextXAlignment=Enum.TextXAlignment.Left; titLbl.ZIndex=92; titLbl.Parent=titleP
+    local minGB=Instance.new("TextButton"); minGB.Size=UDim2.new(0,18,0,18); minGB.Position=UDim2.new(1,-42,0.5,-9); minGB.BackgroundTransparency=1; minGB.Text="－"; minGB.TextColor3=Color3.fromRGB(255,220,0); minGB.Font=Enum.Font.GothamBold; minGB.TextSize=11; minGB.BorderSizePixel=0; minGB.ZIndex=93; minGB.Parent=titleP
+    local clsGB=Instance.new("TextButton"); clsGB.Size=UDim2.new(0,18,0,18); clsGB.Position=UDim2.new(1,-22,0.5,-9); clsGB.BackgroundTransparency=1; clsGB.Text="✕"; clsGB.TextColor3=Color3.fromRGB(255,80,80); clsGB.Font=Enum.Font.GothamBold; clsGB.TextSize=11; clsGB.BorderSizePixel=0; clsGB.ZIndex=93; clsGB.Parent=titleP
+    local p1,_=mkP(26,30)
+    local l1=Instance.new("UIListLayout"); l1.FillDirection=Enum.FillDirection.Horizontal; l1.HorizontalAlignment=Enum.HorizontalAlignment.Center; l1.VerticalAlignment=Enum.VerticalAlignment.Center; l1.Padding=UDim.new(0,2); l1.Parent=p1
+    local pp1=Instance.new("UIPadding"); pp1.PaddingLeft=UDim.new(0,3); pp1.PaddingRight=UDim.new(0,3); pp1.PaddingTop=UDim.new(0,4); pp1.PaddingBottom=UDim.new(0,4); pp1.Parent=p1
+    local BW=37; local BH=22
+    local startBtn,_=mkB(p1,"START",BW,BH); local stopBtn,_=mkB(p1,"STOP",BW,BH)
+    local nearBtn,_=mkB(p1,"NEAREST",BW,BH,Color3.fromRGB(0,180,255))
+    local pauseBtn,pauseLbl,_=mkB(p1,"PAUSE",BW,BH,Color3.fromRGB(255,180,0))
+    local flipBtn,flipLbl,_=mkB(p1,"FLIP",BW,BH,Color3.fromRGB(180,80,255))
+    local p2,_=mkP(60,26)
+    local spdT=Instance.new("TextLabel"); spdT.Size=UDim2.new(0,32,1,0); spdT.Position=UDim2.new(0,5,0,0); spdT.BackgroundTransparency=1; spdT.Text="SPD"; spdT.TextColor3=GR; spdT.Font=Enum.Font.GothamBold; spdT.TextSize=9; spdT.TextXAlignment=Enum.TextXAlignment.Left; spdT.ZIndex=91; spdT.Parent=p2
+    local minB,_=mkB(p2,"-",18,18); minB.Position=UDim2.new(0,38,0.5,-9)
+    local spdD=Instance.new("TextLabel"); spdD.Size=UDim2.new(0,50,1,0); spdD.Position=UDim2.new(0,59,0,0); spdD.BackgroundTransparency=1; spdD.Text="1.00x"; spdD.TextColor3=Color3.fromRGB(255,255,255); spdD.Font=Enum.Font.GothamBold; spdD.TextSize=9; spdD.TextXAlignment=Enum.TextXAlignment.Center; spdD.ZIndex=91; spdD.Parent=p2
+    local plusB,_=mkB(p2,"+",18,18); plusB.Position=UDim2.new(0,112,0.5,-9)
+    local rstB,_=mkB(p2,"RST",28,16); rstB.Position=UDim2.new(0,134,0.5,-8)
+    local GSPD={0.25,0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0,4.0,5.0}; local gSI=4
+    local function updGSpd() playbackSpeed=GSPD[gSI]; spdD.Text=string.format("%.2fx",playbackSpeed) end
+    minB.MouseButton1Click:Connect(function() gSI=math.max(1,gSI-1); updGSpd() end)
+    plusB.MouseButton1Click:Connect(function() gSI=math.min(#GSPD,gSI+1); updGSpd() end)
+    rstB.MouseButton1Click:Connect(function() gSI=4; updGSpd() end)
+    local p3,_=mkP(90,26)
+    local aT=Instance.new("TextLabel"); aT.Size=UDim2.new(0,32,1,0); aT.Position=UDim2.new(0,5,0,0); aT.BackgroundTransparency=1; aT.Text="AUTO"; aT.TextColor3=GR; aT.Font=Enum.Font.GothamBold; aT.TextSize=9; aT.TextXAlignment=Enum.TextXAlignment.Left; aT.ZIndex=91; aT.Parent=p3
+    local togABtn=Instance.new("TextButton"); togABtn.Size=UDim2.new(0,28,0,16); togABtn.Position=UDim2.new(0,38,0.5,-8); togABtn.BackgroundColor3=Color3.fromRGB(40,40,40); togABtn.Text="OFF"; togABtn.TextColor3=GR; togABtn.Font=Enum.Font.GothamBold; togABtn.TextSize=8; togABtn.BorderSizePixel=0; togABtn.AutoButtonColor=false; togABtn.ZIndex=92; togABtn.Parent=p3
+    Instance.new("UICorner",togABtn).CornerRadius=UDim.new(1,0)
+    local togASk=Instance.new("UIStroke"); togASk.Color=GR; togASk.Thickness=1.2; togASk.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; togASk.Parent=togABtn
+    local stpBox=Instance.new("TextBox"); stpBox.Size=UDim2.new(0,28,0,16); stpBox.Position=UDim2.new(0,78,0.5,-8); stpBox.BackgroundColor3=Color3.fromRGB(25,25,25); stpBox.Text="10"; stpBox.TextColor3=Color3.fromRGB(255,255,255); stpBox.Font=Enum.Font.GothamBold; stpBox.TextSize=9; stpBox.BorderSizePixel=0; stpBox.ClearTextOnFocus=false; stpBox.ZIndex=92; stpBox.Parent=p3
+    Instance.new("UICorner",stpBox).CornerRadius=UDim.new(0,3)
+    do local sk=Instance.new("UIStroke"); sk.Color=GR; sk.Thickness=1; sk.Parent=stpBox end
+    local sMiB,_=mkB(p3,"-",14,14); sMiB.Position=UDim2.new(0,109,0.5,-7)
+    local sPlB,_=mkB(p3,"+",14,14); sPlB.Position=UDim2.new(0,126,0.5,-7)
+    local aWalking=false; local aWConn=nil; local wDone=0
+    local function startAW()
+        local sc=math.clamp(math.floor(tonumber(stpBox.Text) or 10),1,9999); stpBox.Text=tostring(sc); wDone=0
+        if aWConn then aWConn:Disconnect() end; local _aw=0
+        aWConn=RunService.Heartbeat:Connect(function()
+            if not aWalking then aWConn:Disconnect(); aWConn=nil; return end
+            _aw=_aw+1; if _aw<2 then return end; _aw=0
+            local ch=player.Character; local hm=ch and ch:FindFirstChildOfClass("Humanoid")
+            if hm then hm:Move(Vector3.new(0,0,-1),true) end
+            wDone=wDone+1; if wDone>=sc*30 then
+                aWalking=false; togABtn.Text="OFF"; togABtn.TextColor3=GR
+                TweenService:Create(togABtn,TweenInfo.new(0.1),{BackgroundColor3=Color3.fromRGB(40,40,40)}):Play()
+                TweenService:Create(togASk,TweenInfo.new(0.1),{Color=GR}):Play(); if aWConn then aWConn:Disconnect(); aWConn=nil end
+            end
+        end)
+    end
+    togABtn.MouseButton1Click:Connect(function()
+        aWalking=not aWalking
+        if aWalking then togABtn.Text="ON"; togABtn.TextColor3=GG; TweenService:Create(togABtn,TweenInfo.new(0.12),{BackgroundColor3=GGD}):Play(); TweenService:Create(togASk,TweenInfo.new(0.12),{Color=GG}):Play(); startAW()
+        else togABtn.Text="OFF"; togABtn.TextColor3=GR; TweenService:Create(togABtn,TweenInfo.new(0.12),{BackgroundColor3=Color3.fromRGB(40,40,40)}):Play(); TweenService:Create(togASk,TweenInfo.new(0.12),{Color=GR}):Play(); if aWConn then aWConn:Disconnect(); aWConn=nil end end
+    end)
+    stpBox.FocusLost:Connect(function() local v=tonumber(stpBox.Text); stpBox.Text=v and tostring(math.clamp(math.floor(v),1,9999)) or "10" end)
+    sMiB.MouseButton1Click:Connect(function() stpBox.Text=tostring(math.max(1,(tonumber(stpBox.Text) or 10)-1)) end)
+    sPlB.MouseButton1Click:Connect(function() stpBox.Text=tostring(math.min(9999,(tonumber(stpBox.Text) or 10)+1)) end)
+    local p4,_=mkP(120,26)
+    local lkB,lkL=mkB(p4,"🔓 LOCK PANEL",PW-16,18,GR); lkB.Position=UDim2.new(0,4,0.5,-9)
+    local gPLk=false
+    lkB.MouseButton1Click:Connect(function() gPLk=not gPLk; lkL.Text=gPLk and "🔒 LOCKED" or "🔓 LOCK PANEL"; notify(gPLk and "🔒 Locked" or "🔓 Unlocked","Panel play",1) end)
+
+    -- State: file yang dipilih di playback panel
+    local pbSelFile=nil
+
+    -- p5: label nama file yang dipilih
+    local p5,_=mkP(148,18)
+    local pbSelTxt=Instance.new("TextLabel"); pbSelTxt.Size=UDim2.new(1,-8,1,0); pbSelTxt.Position=UDim2.new(0,4,0,0)
+    pbSelTxt.BackgroundTransparency=1; pbSelTxt.Text="— belum pilih file —"
+    pbSelTxt.TextColor3=Color3.fromRGB(100,160,100); pbSelTxt.Font=Enum.Font.Gotham; pbSelTxt.TextSize=9
+    pbSelTxt.TextXAlignment=Enum.TextXAlignment.Left; pbSelTxt.TextTruncate=Enum.TextTruncate.AtEnd
+    pbSelTxt.ZIndex=92; pbSelTxt.Parent=p5
+
+    -- p6: [📂 PILIH FILE ▾]  +  [📥 LOAD FILE]
+    local p6,_=mkP(170,26)
+    local BW_L=math.floor((PW-14)*0.54); local BW_R=math.floor((PW-14)*0.43)
+    local pbPilihBtn,pbPilihLbl=mkB(p6,"📂 PILIH FILE ▾",BW_L,18,Color3.fromRGB(220,160,0)); pbPilihBtn.Position=UDim2.new(0,4,0.5,-9)
+    local pbLoadBtn,pbLoadLbl=mkB(p6,"📥 LOAD FILE",BW_R,18,Color3.fromRGB(0,200,80)); pbLoadBtn.Position=UDim2.new(0,BW_L+8,0.5,-9)
+
+    -- PILIH FILE dropdown (hanya SELECT, tidak langsung load)
+    pbPilihBtn.MouseButton1Click:Connect(function()
+        local names=listSaveFiles(); if #names==0 then notify("📂","Belum ada save",2); return end
+        if activeDropdown then activeDropdown:Destroy(); activeDropdown=nil end
+        local IH=28; local visH=math.min(#names*IH+8,220)
+        local pop=Instance.new("Frame"); pop.Size=UDim2.new(0,240,0,visH)
+        pop.BackgroundColor3=Color3.fromRGB(5,18,10); pop.BorderSizePixel=0; pop.ZIndex=300; pop.Parent=screenGui
+        Instance.new("UICorner",pop).CornerRadius=UDim.new(0,9)
+        do local sk=Instance.new("UIStroke"); sk.Color=Color3.fromRGB(0,180,80); sk.Thickness=1; sk.Parent=pop end
+        local sf2=Instance.new("ScrollingFrame"); sf2.Size=UDim2.new(1,0,1,0); sf2.BackgroundTransparency=1
+        sf2.ScrollBarThickness=3; sf2.ScrollBarImageColor3=Color3.fromRGB(0,220,80)
+        sf2.CanvasSize=UDim2.new(0,0,0,#names*IH+8); sf2.BorderSizePixel=0; sf2.ZIndex=300; sf2.Parent=pop
+        local ul3=Instance.new("UIListLayout"); ul3.Padding=UDim.new(0,2); ul3.SortOrder=Enum.SortOrder.LayoutOrder; ul3.Parent=sf2
+        do local pd=Instance.new("UIPadding"); pd.PaddingTop=UDim.new(0,4); pd.PaddingLeft=UDim.new(0,4); pd.PaddingRight=UDim.new(0,4); pd.Parent=sf2 end
+        local pbItemBtns={}
+        for _,name in ipairs(names) do
+            local isSel=(name==pbSelFile)
+            local ob=Instance.new("TextButton"); ob.Size=UDim2.new(1,0,0,IH-3)
+            ob.BackgroundColor3=isSel and Color3.fromRGB(0,90,35) or Color3.fromRGB(8,40,18)
+            ob.Text=(isSel and "✓ " or "🗺 ")..name; ob.TextColor3=isSel and Color3.fromRGB(160,255,190) or Color3.fromRGB(200,240,210)
+            ob.Font=Enum.Font.GothamSemibold; ob.TextSize=10; ob.BorderSizePixel=0; ob.ZIndex=300; ob.Parent=sf2
+            Instance.new("UICorner",ob).CornerRadius=UDim.new(0,6)
+            pbItemBtns[name]=ob
+            ob.MouseButton1Click:Connect(function()
+                -- Hanya SELECT
+                pbSelFile=name
+                pbSelTxt.Text="✓ "..name; pbSelTxt.TextColor3=Color3.fromRGB(100,255,150)
+                pbPilihLbl.Text="📂 "..name.." ▾"
+                for n2,ob2 in pairs(pbItemBtns) do
+                    ob2.BackgroundColor3=(n2==name) and Color3.fromRGB(0,90,35) or Color3.fromRGB(8,40,18)
+                    ob2.Text=((n2==name) and "✓ " or "🗺 ")..n2
+                    ob2.TextColor3=(n2==name) and Color3.fromRGB(160,255,190) or Color3.fromRGB(200,240,210)
+                end
+                pop:Destroy(); activeDropdown=nil; notify("🗺 Dipilih",name,1)
+            end)
+            ob.MouseEnter:Connect(function() if name~=pbSelFile then ob.BackgroundColor3=Color3.fromRGB(12,60,25) end end)
+            ob.MouseLeave:Connect(function() if name~=pbSelFile then ob.BackgroundColor3=Color3.fromRGB(8,40,18) end end)
+        end
+        local aY=pbPilihBtn.AbsolutePosition.Y-visH-4; local aX=pbPilihBtn.AbsolutePosition.X
+        if aY<10 then aY=pbPilihBtn.AbsolutePosition.Y+pbPilihBtn.AbsoluteSize.Y+4 end
+        pop.Position=UDim2.new(0,aX,0,aY); activeDropdown=pop
+        local cc3; cc3=UserInputService.InputBegan:Connect(function(inp)
+            if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then
+                task.delay(0.15,function()
+                    if activeDropdown~=pop then cc3:Disconnect(); return end
+                    local mp=UserInputService:GetMouseLocation(); local pp=pop.AbsolutePosition; local ps=pop.AbsoluteSize
+                    if not(mp.X>=pp.X and mp.X<=pp.X+ps.X and mp.Y>=pp.Y and mp.Y<=pp.Y+ps.Y) then
+                        if activeDropdown==pop then pop:Destroy(); activeDropdown=nil end
+                        cc3:Disconnect()
+                    end
+                end)
+            end
+        end)
+    end)
+
+    -- LOAD FILE: execute load dari pbSelFile
+    pbLoadBtn.MouseButton1Click:Connect(function()
+        if not pbSelFile then notify("⚠","Pilih file dulu dari dropdown",2); return end
+        task.defer(function()
+            local loaded=loadFromFile(pbSelFile)
+            if loaded then
+                recordedData=loaded; editIndex=1; updatePointsLabel()
+                updateStatus("Loaded: "..pbSelFile,"Siap dimainkan",Color3.fromRGB(0,220,255),Color3.fromRGB(0,180,255))
+                if showRoute then buildRouteViz() end
+                notify("✅ Loaded",pbSelFile.." ("..#loaded.." poin)",3); updateStats(); refreshPlayUI()
+                pbSelFile=nil; pbSelTxt.Text="— belum pilih file —"; pbSelTxt.TextColor3=Color3.fromRGB(100,160,100)
+                pbPilihLbl.Text="📂 PILIH FILE ▾"
+            else notify("⚠ Error","Gagal load: "..pbSelFile,3) end
+        end)
+    end)
+    wrapper.Size=UDim2.new(0,PW,0,204)
+
+    local flipEnabled2=false
+    local function setFlip2(v)
+        flipEnabled2=v
+        pcall(function()
+            local ch=player.Character; if not ch then return end
+            local hm=ch:FindFirstChildOfClass("Humanoid"); if hm then hm.AutoRotate=not v end
+        end)
+    end
+
+    startBtn.MouseButton1Click:Connect(function()
+        if isRecording then notify("⚠ Error","Stop rec dulu",2); return end
+        if not isPlaying then startPlayback(false) else stopPlayback() end; refreshPlayUI()
+    end)
+    stopBtn.MouseButton1Click:Connect(function() stopWalkToTrack(); if isPlaying then stopPlayback() end; refreshPlayUI() end)
+    nearBtn.MouseButton1Click:Connect(function()
+        if isRecording then notify("⚠ Error","Stop rec dulu",2); return end
+        if isPlaying then stopPlayback(); refreshPlayUI(); return end
+        if isWalkingToTrack then stopWalkToTrack(); notify("⏹ Batal","Jalan ke track dibatalkan",2); return end
+        walkToNearestThenPlay()
+    end)
+    pauseBtn.MouseButton1Click:Connect(function()
+        if not isPlaying then notify("⚠ Error","Tidak sedang play",2); return end
+        isPaused=not isPaused; pauseLbl.Text=isPaused and "RESUME" or "PAUSE"
+        if isPaused then stopAllManagedAnims(); removeBodyVel(); setAnimateEnabled(true); updateStatus("⏸ Paused","Resume untuk lanjut",Color3.fromRGB(255,180,0),Color3.fromRGB(220,155,0))
+        else setAnimateEnabled(false); loadTracksFromAnimate(); updateStatus("▶ Playing...","Lanjut",Color3.fromRGB(80,255,140),Color3.fromRGB(0,220,100)) end
+        refreshPlayUI()
+    end)
+    flipBtn.MouseButton1Click:Connect(function()
+        flipEnabled2=not flipEnabled2; setFlip2(flipEnabled2)
+        flipLbl.Text=flipEnabled2 and "FLIP ✓" or "FLIP"; notify("🔄 Flip",flipEnabled2 and "ON" or "OFF",2)
+    end)
+    local minG=false
+    minGB.MouseButton1Click:Connect(function()
+        minG=not minG; minGB.Text=minG and "྾" or "－"
+        TweenService:Create(wrapper,TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(0,PW,0,minG and 22 or 204)}):Play()
+        for _,ch in ipairs(wrapper:GetChildren()) do if ch:IsA("Frame") and ch~=titleP then ch.Visible=not minG end end
+    end)
+    clsGB.MouseButton1Click:Connect(function()
+        if aWConn then aWConn:Disconnect(); aWConn=nil end; stopWalkToTrack()
+        TweenService:Create(wrapper,TweenInfo.new(0.15,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Size=UDim2.new(0,PW,0,0)}):Play()
+        task.delay(0.18,function() if wrapper and wrapper.Parent then wrapper:Destroy() end; playFloating=nil end)
+    end)
+    local dragging=false; local dragStart=nil; local startPos=nil
+    titleP.InputBegan:Connect(function(inp) if gPLk then return end; if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then dragging=true; dragStart=inp.Position; startPos=wrapper.Position end end)
+    titleP.InputEnded:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.MouseButton1 or inp.UserInputType==Enum.UserInputType.Touch then dragging=false end end)
+    UserInputService.InputChanged:Connect(function(inp) if dragging and (inp.UserInputType==Enum.UserInputType.MouseMovement or inp.UserInputType==Enum.UserInputType.Touch) then local d=inp.Position-dragStart; wrapper.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) end end)
+    wrapper.Position=UDim2.new(0.5,HW,1,20)
+    TweenService:Create(wrapper,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Position=UDim2.new(0.5,HW,1,-160)}):Play()
+    playFloating=wrapper
+end
+
+-- ════════════════════════════════════════════════
+-- CONNECT OPEN BUTTONS
+-- ════════════════════════════════════════════════
+openRecBtn.MouseButton1Click:Connect(function() createRecordingFloat(); notify("⬤ Rec Panel","Dibuka!",2) end)
+openGlowBtn.MouseButton1Click:Connect(function() createPlaybackFloat(); notify("▶ Play Panel","Dibuka!",2) end)
+
+-- ════════════════════════════════════════════════
+-- MINIMIZE / CLOSE MAIN
+-- ════════════════════════════════════════════════
+local minimized=false
+minBtn.MouseButton1Click:Connect(function()
+    minimized=not minimized
+    if minimized then for _,sf in pairs(tabScrolls) do sf.Visible=false end; tabBar.Visible=false; TweenService:Create(mainFrame,TweenInfo.new(0.22,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(0,280,0,34)}):Play()
+    else tabBar.Visible=true; TweenService:Create(mainFrame,TweenInfo.new(0.22,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(0,280,0,440)}):Play(); task.delay(0.23,function() switchTab(currentTab) end) end
+    minBtn.Text=minimized and "྾" or "－"
+end)
+closeBtn.MouseButton1Click:Connect(function()
+    if isRecording then stopRecording() end; if isPlaying then stopPlayback() end; stopWalkToTrack()
+    setInfiniteJump(false); setAnimateEnabled(true); clearRouteViz(); destroyPoolLines()
+    stopEditSmooth(); local f=workspace:FindFirstChild("_WALK_Route"); if f then f:Destroy() end
+    if recFloating then recFloating:Destroy(); recFloating=nil end
+    if playFloating then playFloating:Destroy(); playFloating=nil end
+    TweenService:Create(mainFrame,TweenInfo.new(0.18,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0),BackgroundTransparency=1}):Play()
+    task.delay(0.2,function() pcall(function() screenGui:Destroy() end) end)
+end)
+
+-- ════════════════════════════════════════════════
+-- KEYBINDS
+-- ════════════════════════════════════════════════
+UserInputService.InputBegan:Connect(function(inp,gpe)
+    if gpe then return end
+    pcall(function()
+    if inp.KeyCode==Enum.KeyCode.LeftControl then
+        if isPlaying then notify("⚠ Error","Stop play dulu",2); return end
+        if not isRecording then startRecording(false) else stopRecording() end
+    elseif inp.KeyCode==Enum.KeyCode.LeftShift then
+        if isRecording then notify("⚠ Error","Stop rec dulu",2); return end
+        if not isPlaying then if #recordedData>=2 then startPlayback(true) end else stopPlayback() end
+    elseif inp.KeyCode==Enum.KeyCode.Left and isEditMode then
+        editIndex=math.max(1,editIndex-1); updateEditCursor(nil)
+    elseif inp.KeyCode==Enum.KeyCode.Right and isEditMode then
+        editIndex=math.min(#recordedData,editIndex+1); updateEditCursor(nil)
+    end
+    end)
+end)
+
+-- ════════════════════════════════════════════════
+-- RESPAWN HANDLER
+-- ════════════════════════════════════════════════
+player.CharacterAdded:Connect(function(newChar)
+    character=newChar; humanoid=character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid",5); rootPart=character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart",5)
+    managedTracks={}; currentPlayingState=nil; prevPBState=nil; airFrames=0
+    if isPlaying then stopPlayback() end; if isRecording then stopRecording() end
+    if isEditMode then stopEditSmooth(); isEditMode=false end
+    stopWalkToTrack(); setAnimateEnabled(true)
+end)
+
+-- ════════════════════════════════════════════════
+-- INIT
+-- ════════════════════════════════════════════════
+switchTab("Record")
+updateStatus("Idle — Ready","Buka Recording Panel atau Play Panel",Color3.fromRGB(200,200,220),Color3.fromRGB(80,80,80))
+updatePointsLabel(); updateStats()
+task.defer(function() ensureSaveFolder() end)
+
+-- Animasi masuk main frame
+mainFrame.BackgroundTransparency=1; mainFrame.Size=UDim2.new(0,220,0,0)
+TweenService:Create(mainFrame,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),
+    {Size=UDim2.new(0,280,0,440),BackgroundTransparency=0}):Play()
+
+-- Notif welcome (delay supaya loading screen selesai dulu)
+task.delay(0.5,function() showNotif("🎮 AWR v1.4","Web Route Load + Update!","play",4) end)
+
+-- refresh character refs
+task.defer(refreshCharRefs)
+end -- end loadMainScript()
+
+-- ── ENTRY POINT ──
+showKeyGUI(loadMainScript)
