@@ -18,19 +18,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.json({ feedbacks: data || [] })
   }
 
-  // Sensor nama Roblox: "Sanzxmzz" → "San***zz"
-  function maskName(name: string): string {
-    if (!name || name.length === 0) return '***'
-    if (name.length <= 2) return name[0] + '*'
-    if (name.length <= 4) return name.slice(0,2) + '*'.repeat(name.length-2)
-    const stars = Math.max(2, name.length - 5)
-    return name.slice(0,3) + '*'.repeat(stars) + name.slice(-2)
-  }
-
-  // POST - kirim feedback baru (dari Lua script Roblox ATAU dari website)
+  // POST - kirim feedback baru (dari Lua script Roblox)
   if (req.method === 'POST') {
-    const { type, message, rating, roblox_name, roblox_username, website_username, hwid } = req.body
-    const robloxSource = roblox_name || roblox_username || 'Anonymous'
+    const { type, message, rating, roblox_name, website_username, hwid } = req.body
 
     // Validasi wajib
     if (!type || !message || !rating) {
@@ -43,7 +33,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'message harus 3-1000 karakter' })
     }
 
-    const maskedRoblox = maskName(robloxSource)
+    // Sensor nama Roblox: "Sanzxmzz" → "San***zz"
+    function maskName(name: string): string {
+      if (!name || name.length === 0) return '***'
+      if (name.length <= 2) return name[0] + '*'
+      if (name.length <= 4) return name.slice(0,2) + '*'.repeat(name.length-2)
+      // Panjang 5+: 3 awal + *** + 2 akhir
+      const stars = Math.max(2, name.length - 5)
+      return name.slice(0,3) + '*'.repeat(stars) + name.slice(-2)
+    }
+
+    const maskedRoblox = maskName(roblox_name || 'Anonymous')
 
     const { data, error } = await supabaseAdmin
       .from('feedbacks')
