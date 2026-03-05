@@ -388,21 +388,10 @@ export default function DevPage(){
 
   const loadUsers=()=>api('/developer/users','GET',undefined,token).then(d=>{if(d.users)setUsers(d.users)})
   const loadMusicSupport=()=>{
-    api('/developer/music','GET').then(d=>{if(d.music)setMusic({url:d.music.type==='upload'&&d.music.file_data?d.music.file_data:d.music.url||'',type:d.music.type||'url',is_active:!!d.music.is_active,volume:d.music.volume||50,title:d.music.title||'AWR Music'})})
+    api('/developer/music','GET').then(d=>{if(d.music)setMusic({url:d.music.url||'',type:d.music.type||'url',is_active:!!d.music.is_active,volume:d.music.volume||50,title:d.music.title||'AWR Music'})})
     api('/developer/support','GET').then(d=>{if(d.support)setSupport({whatsapp_url:d.support.whatsapp_url||'',telegram_url:d.support.telegram_url||'',discord_url:d.support.discord_url||'',custom_label:d.support.custom_label||'Hubungi Support',is_active:!!d.support.is_active})})
   }
-  async function saveMusic(){
-    setMusicSaving(true)
-    const payload: any = { url: music.url, type: music.type, is_active: music.is_active, volume: music.volume, title: music.title }
-    if(music.type==='upload' && music.url && music.url.startsWith('data:')) {
-      payload.file_data = music.url
-      payload.url = ''
-    }
-    const d=await api('/developer/music','PATCH',payload,token)
-    setMusicSaving(false)
-    if(d.error){toast(d.error,'error');return}
-    toast('Pengaturan musik disimpan!','success')
-  }
+  async function saveMusic(){setMusicSaving(true);const d=await api('/developer/music','PATCH',music,token);setMusicSaving(false);if(d.error){toast(d.error,'error');return};toast('Pengaturan musik disimpan!','success')}
   async function saveSupport(){setSupportSaving(true);const d=await api('/developer/support','PATCH',support,token);setSupportSaving(false);if(d.error){toast(d.error,'error');return};toast('Pengaturan support disimpan!','success')}
   const loadKeys=()=>api('/developer/keys','GET',undefined,token).then(d=>{if(d.keys)setKeys(d.keys)})
   const loadGkSteps=()=>api('/developer/getkey-settings','GET',undefined,token).then(d=>{if(d.steps)setGkSteps(d.steps)})
