@@ -11,12 +11,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   
   const lb = (data || []).map((u, i) => ({
     rank: i + 1,
-    username: u.username,
+    username: u.leaderboard_public ? u.username : u.username.slice(0,2) + '***',
     roblox_username: u.roblox_username,
     total_executions: u.total_executions,
-    avatar_url: u.avatar_url || null,
-    avatar_file_url: u.avatar_file_url || null,
-    leaderboard_public: u.leaderboard_public !== false  // default true
+    avatar: u.avatar_file_url || u.avatar_url || null,
+    leaderboard_public: u.leaderboard_public
   }))
   
   res.json({ leaderboard: lb })
