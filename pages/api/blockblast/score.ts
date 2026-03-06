@@ -8,7 +8,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await requireAuth(req, res)
   if (!user) return
 
-  // Cek apakah event aktif
   const { data: settings } = await supabaseAdmin
     .from('blockblast_settings')
     .select('event_active')
@@ -23,13 +22,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Skor tidak valid' })
   }
 
-  // Upsert — hanya simpan jika skor lebih tinggi dari sebelumnya
+  // Check existing score
   const { data: existing } = await supabaseAdmin
     .from('blockblast_scores')
     .select('score')
     .eq('user_id', user.id)
-    .single()
-    .catch(() => ({ data: null }))
+    .maybeSingle()
 
   if (existing && existing.score >= score) {
     return res.json({ success: true, best_score: existing.score, message: 'Skor lamamu lebih tinggi!' })
