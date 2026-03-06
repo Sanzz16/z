@@ -655,6 +655,174 @@ function LeaderboardPage() {
   )
 }
 
+
+// ─── User Dashboard ──────────────────────────────────────────
+function UserDash({token,user:u,onLogout}:{token:string;user:User;onLogout:()=>void}) {
+  const [tab,setTab]=useState<'dash'|'notifs'|'profile'>('dash')
+  const [key,setKey]=useState<KeyData|null>(null)
+  const [expiredKeys,setExpiredKeys]=useState<KeyData[]>([])
+  const [notifications,setNotifications]=useState<any[]>([])
+  const [announcements,setAnnouncements]=useState<any[]>([])
+  const [unread,setUnread]=useState(0)
+  const [getkeyOpen,setGetkeyOpen]=useState(false)
+  const [editOpen,setEditOpen]=useState(false)
+  const [saving,setSaving]=useState(false)
+  const [showPw,setShowPw]=useState(false)
+  const [ef,setEf]=useState({username:u.username,roblox_username:u.roblox_username||'',avatar_url:u.avatar_url||'',avatar_file_url:'',background_url:u.background_url||'',background_type:u.background_type||'image',password:''})
+
+  useEffect(()=>{
+    api('/user/profile','GET',undefined,token).then(d=>{
+      if(!d.user)return
+      if(d.keys){
+        const active=d.keys.find((k:any)=>k.is_active&&!isExpired(k.expires_at))
+        setKey(active||null)
+        setExpiredKeys(d.keys.filter((k:any)=>!k.is_active||isExpired(k.expires_at)))
+      }
+      if(d.notifications){
+        setNotifications(d.notifications)
+        setUnread(d.notifications.filter((n:any)=>!n.is_read).length)
+      }
+      if(d.announcements) setAnnouncements(d.announcements)
+    })
+  },[token])
+
+  async function saveProfile(){
+    setSaving(true)
+    const d=await api('/user/profile','PATCH',ef,token)
+    setSaving(false)
+    if(d.error){toast(d.error,'error');return}
+    toast('Profil disimpan!','success')
+    setEditOpen(false)
+  }
+
+  return(
+    <div style={{maxWidth:600,margin:'0 auto',padding:'16px 16px 100px'}}>
+      {/* Sub tabs */}
+      <div style={{display:'flex',gap:8,marginBottom:20}}>
+        {(['dash','notifs','profile'] as const).map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'9px 0',borderRadius:12,border:'1px solid',fontSize:'.8rem',fontFamily:'Rajdhani,sans-serif',fontWeight:700,cursor:'pointer',transition:'all .2s',
+            background:tab===t?'rgba(0,140,255,.15)':'transparent',
+            borderColor:tab===t?'rgba(0,140,255,.4)':'rgba(255,255,255,.08)',
+            color:tab===t?'var(--accent)':'var(--text2)'}}>
+            {t==='dash'?'🏠 Home':t==='notifs'?`🔔 Notif${unread>0?` (${unread})`:''}`:' Profil'}
+          </button>
+        ))}
+      </div>
+
+      {tab==='dash'&&(
+        <div style={{animation:'fadeUp .3s ease'}}>
+          {key?(
+            <div className="hero-card" style={{animation:'fadeUp .35s ease'}}>
+              <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8,marginBottom:16}}>
+                <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>KEY AKTIF KAMU</div>
+                <div style={{display:'flex',gap:6}}>
+                  <span className={`badge ${key.is_active&&!isExpired(key.expires_at)?'badge-green':'badge-red'}`}>{key.is_active&&!isExpired(key.expires_at)?'Aktif':'Expired'}</span>
+                  <span className="badge badge-blue">{DUR[key.duration_type]||key.duration_type}</span>
+                </div>
+              </div>
+              <div className="key-box" style={{marginBottom:16}} onClick={()=>{copyText(key.key_value);toast('Key disalin!','success')}}>
+                {key.key_value}<span className="copy-hint">klik copy</span>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
+                {[['EXPIRED',fmtDate(key.expires_at),isExpired(key.expires_at)?'var(--red)':'var(--text)'],['SISA',timeLeft(key.expires_at),'var(--accent)'],['PAKAI',`${key.times_used}×`,'var(--text)']].map(([l,v,c])=>(
+                  <div key={l as string} style={{background:'rgba(0,0,0,.3)',borderRadius:10,padding:'10px 12px',border:'1px solid rgba(255,255,255,.05)'}}>
+                    <div style={{fontSize:'.65rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1.5,marginBottom:4}}>{l}</div>
+                    <div style={{fontSize:'.9rem',color:c as string,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ):(
+            <div className="card" style={{textAlign:'center',padding:'44px 24px',animation:'fadeUp .35s ease'}}>
+              <div style={{fontWeight:700,fontSize:'1.05rem',marginBottom:8,fontFamily:'Rajdhani,sans-serif'}}>BELUM PUNYA KEY AKTIF</div>
+              <div style={{fontSize:'.84rem',color:'var(--text2)',marginBottom:20}}>Beli dari reseller atau klaim key gratis 24 jam</div>
+              <button className="btn btn-primary" onClick={()=>setGetkeyOpen(true)}>🎁 Get Free Key 24 Jam</button>
+            </div>
+          )}
+
+          <div className="stats-grid" style={{marginTop:16}}>
+            {[
+              {val:u.total_executions||0,lbl:'Total Exec',color:'var(--accent)'},
+              {val:key&&key.is_active&&!isExpired(key.expires_at)?'✓':'✗',lbl:'Key Aktif',color:key&&key.is_active&&!isExpired(key.expires_at)?'var(--green)':'var(--red)'},
+              {val:expiredKeys.length,lbl:'Key Expired',color:'var(--text)'},
+              {val:unread,lbl:'Notif Baru',color:'var(--yellow)'},
+            ].map((s,i)=>(
+              <div key={i} className="stat-box"><div className="stat-val" style={{color:s.color}}>{s.val}</div><div className="stat-lbl">{s.lbl}</div></div>
+            ))}
+          </div>
+
+          {announcements?.length>0&&(
+            <div className="card" style={{marginTop:16,animation:'fadeUp .5s ease'}}>
+              <div className="sec-title">📢 Pengumuman</div>
+              {announcements.map((a:any)=>(
+                <div key={a.id} className="ann-item">
+                  <div className="ann-title">{a.title}</div>
+                  <div className="ann-body">{a.content}</div>
+                  <div className="ann-meta">{fmtDate(a.created_at)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==='notifs'&&(
+        <div className="card" style={{animation:'fadeUp .3s ease'}}>
+          <div className="sec-title">🔔 Notifikasi</div>
+          {!notifications?.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:40}}>Tidak ada notifikasi</div>}
+          {notifications?.map((n:any,i:number)=>(
+            <div key={n.id} style={{padding:'12px 14px',borderRadius:12,marginBottom:8,background:n.is_read?'transparent':'rgba(0,102,204,.06)',border:`1px solid ${n.is_read?'transparent':'rgba(0,170,255,.14)'}`,animation:`fadeUp .25s ease ${i*.04}s both`}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div style={{fontWeight:700,fontSize:'.88rem'}}>{n.title}</div>
+                {!n.is_read&&<span style={{width:8,height:8,borderRadius:'50%',background:'var(--accent)',display:'inline-block'}}/>}
+              </div>
+              <div style={{fontSize:'.82rem',color:'var(--text2)',marginTop:5,lineHeight:1.5}}>{n.message}</div>
+              <div style={{fontSize:'.72rem',color:'var(--text3)',marginTop:6}}>{fmtDate(n.created_at)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='profile'&&(
+        <div style={{animation:'fadeUp .3s ease'}}>
+          <div className="card" style={{padding:0,overflow:'hidden'}}>
+            <div className="profile-bg">
+              {u.background_url?u.background_type==='video'?<video src={u.background_url} autoPlay loop muted playsInline/>:<img src={u.background_url} alt=""/>:null}
+              <div className="profile-bg-overlay"/>
+            </div>
+            <div className="profile-info">
+              <div className="profile-row">
+                <div className="profile-avatar">{u.avatar_url?<img src={u.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:'👤'}</div>
+                <div style={{flex:1}}>
+                  <div className="profile-name">{u.username}</div>
+                  <div className="profile-email">{u.email}</div>
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={()=>setEditOpen(true)}>✏️ Edit</button>
+              </div>
+            </div>
+          </div>
+          <button className="btn btn-ghost" style={{width:'100%',marginTop:12}} onClick={onLogout}>🚪 Logout</button>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      <Modal open={editOpen} onClose={()=>setEditOpen(false)} title="Edit Profil">
+        <div className="form-group"><label className="form-label">Username</label><input className="form-input" value={ef.username} onChange={e=>setEf(f=>({...f,username:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">Roblox Username</label><input className="form-input" placeholder="Username Roblox..." value={ef.roblox_username} onChange={e=>setEf(f=>({...f,roblox_username:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">URL Avatar</label><input className="form-input" placeholder="https://...jpg" value={ef.avatar_url} onChange={e=>setEf(f=>({...f,avatar_url:e.target.value}))}/></div>
+        <div className="form-group"><label className="form-label">Password Baru (kosong = tidak ganti)</label>
+          <input className="form-input" type={showPw?'text':'password'} placeholder="Min. 6 karakter..." value={ef.password} onChange={e=>setEf(f=>({...f,password:e.target.value}))}/>
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button className="btn btn-primary" style={{flex:1}} onClick={saveProfile} disabled={saving}>{saving?'Menyimpan...':'Simpan'}</button>
+          <button className="btn btn-ghost" onClick={()=>setEditOpen(false)}>Batal</button>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+
 // ─── MAIN APP ────────────────────────────────────────────────
 export default function App() {
   const router = useRouter()
