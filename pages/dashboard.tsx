@@ -199,214 +199,50 @@ function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
               ))}
             </div>
 
-      {/* DASHBOARD */}
-      {tab==='dash'&&(
-        <div style={{animation:'fadeUp .3s ease'}}>
-
-          {/* Hero Key Card */}
-          {key?(
-            <div className="hero-card" style={{animation:'fadeUp .35s ease'}}>
-              <div style={{position:'relative',zIndex:3}}>
-                <div style={{display:'flex',justifyContent:'space-between',flexWrap:'wrap',gap:8,marginBottom:16}}>
-                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div className="sec-indicator" style={{height:22,position:'relative'}}/>
-                    <div style={{fontFamily:'Rajdhani,sans-serif',fontSize:'1rem',fontWeight:700,background:'var(--gradient-primary)',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>KEY AKTIF KAMU</div>
-                  </div>
-                  <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                    <span className={`badge ${key.is_active&&!isExpired(key.expires_at)?'badge-green':'badge-red'}`}>
-                      <span className="ping-dot" style={{width:6,height:6,marginRight:5}}/>{key.is_active&&!isExpired(key.expires_at)?'Aktif':'Expired'}
-                    </span>
-                    <span className="badge badge-blue">{DUR[key.duration_type]||key.duration_type}</span>
-                    {key.is_free_key&&<span className="badge badge-yellow">Free</span>}
+            {/* Form Login / Register */}
+            {mode==='login'?(
+              <div>
+                <div className="form-group"><label className="form-label">Username</label><input className="form-input" autoComplete="username" placeholder="Username kamu..." value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Password</label>
+                  <div className="form-pw-wrap">
+                    <input className="form-input" type={showPw?'text':'password'} autoComplete="current-password" placeholder="Password..." value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))}/>
+                    <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{showPw?(<><path d='M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94'/><path d='M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19'/><line x1='1' y1='1' x2='23' y2='23'/></>):(<><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></>)}</svg></button>
                   </div>
                 </div>
-                <div className="key-box" style={{marginBottom:16}} onClick={()=>{copyText(key.key_value);toast('Key berhasil disalin!','success')}}>
-                  {key.key_value}<span className="copy-hint">klik copy</span>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:'.8rem',color:'var(--text2)',cursor:'pointer'}}>
+                    <input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+                    Ingat saya 30 hari
+                  </label>
+                  <button type="button" style={{background:'none',border:'none',color:'var(--accent)',fontSize:'.8rem',cursor:'pointer',padding:0}} onClick={()=>setShowForgot(true)}>Lupa password?</button>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-                  {[['EXPIRED',fmtDate(key.expires_at),isExpired(key.expires_at)?'var(--red)':'var(--text)'],['SISA WAKTU',timeLeft(key.expires_at),'var(--accent)'],['DIPAKAI',`${key.times_used}×`,'var(--text)']].map(([l,v,c])=>(
-                    <div key={l as string} style={{background:'rgba(0,0,0,.3)',borderRadius:10,padding:'10px 12px',border:'1px solid rgba(255,255,255,.05)'}}>
-                      <div style={{fontSize:'.65rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1.5,marginBottom:4}}>{l}</div>
-                      <div style={{fontSize:'.9rem',color:c as string,fontWeight:700,fontFamily:'Rajdhani,sans-serif'}}>{v}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{marginTop:10,fontSize:'.72rem',color:'var(--text3)'}}>Max HWID: {key.hwid_max} perangkat</div>
+                <button className="btn btn-primary" style={{width:'100%'}} onClick={submit} disabled={loading}>
+                  {loading?<><span className="spinner"/>Masuk...</>:<>Masuk ke Dashboard</>}
+                </button>
               </div>
-            </div>
-          ):(
-            <div className="card" style={{textAlign:'center',padding:'44px 24px',animation:'fadeUp .35s ease',background:'linear-gradient(160deg,rgba(255,77,255,.06),rgba(79,172,254,.04))',borderColor:'rgba(255,77,255,.12)'}}>
-              <div style={{fontSize:'2.8rem',marginBottom:14,animation:'float 3s ease-in-out infinite'}}><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" style={{opacity:.3}}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
-              <div style={{fontWeight:700,fontSize:'1.05rem',marginBottom:8,fontFamily:'Rajdhani,sans-serif'}}>KAMU BELUM PUNYA KEY AKTIF</div>
-              <div style={{fontSize:'.84rem',color:'var(--text2)',marginBottom:20}}>Beli dari reseller atau klaim key gratis 24 jam</div>
-              <button className="btn btn-primary" onClick={()=>setGetkeyOpen(true)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>Get Free Key 24 Jam</button>
-            </div>
-          )}
-
-          {/* Stats */}
-          <div className="stats-grid">
-            {[
-              {val:u.total_executions||0,lbl:'Total Exec',color:'var(--accent)'},
-              {val:key&&key.is_active&&!isExpired(key.expires_at)?'✓':'✗',lbl:'Key Aktif',color:key&&key.is_active&&!isExpired(key.expires_at)?'var(--green)':'var(--red)'},
-              {val:expiredKeys.length,lbl:'Key Expired',color:'var(--text)'},
-              {val:unread,lbl:'Notif Baru',color:'var(--yellow)'},
-            ].map((s,i)=>(
-              <div key={i} className="stat-box" style={{animationDelay:`${i*.07}s`}}>
-                <div className="stat-val" style={{color:s.color}}>{s.val}</div>
-                <div className="stat-lbl">{s.lbl}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Expired keys */}
-          {expiredKeys.length>0&&(
-            <div className="card" style={{animation:'fadeUp .45s ease'}}>
-              <div className="sec-title"><svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' style={{marginRight:6,display:'inline-block',verticalAlign:'middle'}}><rect x='2' y='7' width='20' height='14' rx='2'/><path d='M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2'/></svg>Riwayat Key</div>
-              {expiredKeys.slice(0,5).map((k:KeyData)=>(
-                <div key={k.id} className="expired-key">
-                  <span style={{fontSize:'1.2rem'}}>k.is_free_key?<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M17.5 8.5a3.5 3.5 0 11-7 0 3.5 3.5 0 017 0z"/><path d="M10.5 12.5L14 9"/></svg></span>
-                  <div className="expired-key-val">{k.key_value}</div>
-                  <div>
-                    <div className="expired-key-info">{!k.is_active?'Dinonaktifkan':'Expired'}</div>
-                    <div style={{fontSize:'.7rem',color:'var(--text3)',marginTop:2}}>{DUR[k.duration_type]||k.duration_type}</div>
+            ):(
+              <div>
+                <div className="form-group"><label className="form-label">Username</label><input className="form-input" autoComplete="username" placeholder="Pilih username..." value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Email</label><input className="form-input" type="email" autoComplete="email" placeholder="Email aktif..." value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}/></div>
+                <div className="form-group"><label className="form-label">Password</label>
+                  <div className="form-pw-wrap">
+                    <input className="form-input" type={showPw?'text':'password'} autoComplete="new-password" placeholder="Min. 6 karakter..." value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))}/>
+                    <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{showPw?(<><path d='M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94'/><path d='M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19'/><line x1='1' y1='1' x2='23' y2='23'/></>):(<><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></>)}</svg></button>
                   </div>
                 </div>
-              ))}
-              {key&&<button className="btn btn-primary btn-sm" style={{marginTop:8}} onClick={()=>setGetkeyOpen(true)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/></svg>Klaim Key Baru</button>}
-            </div>
-          )}
-
-          {/* Announcements */}
-          {announcements?.length>0&&(
-            <div className="card" style={{animation:'fadeUp .5s ease'}}>
-              <div className="sec-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6,display:"inline-block",verticalAlign:"middle"}}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Pengumuman</div>
-              {announcements.map((a:any)=>(
-                <div key={a.id} className="ann-item">
-                  <div className="ann-title">{a.title}</div>
-                  <div className="ann-body">{a.content}</div>
-                  <div className="ann-meta">
-                    {fmtDate(a.created_at)}
-                    {a.creator&&<span className={`ann-by-${a.creator.role==='developer'?'dev':'reseller'}`}> · by {a.creator.username} ({a.creator.role})</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* NOTIFS */}
-      {tab==='notifs'&&(
-        <div className="card" style={{animation:'fadeUp .3s ease'}}>
-          <div className="sec-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:6,display:"inline-block",verticalAlign:"middle"}}><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notifikasi</div>
-          {!notifications?.length&&<div style={{textAlign:'center',color:'var(--text2)',padding:40}}>Tidak ada notifikasi</div>}
-          {notifications?.map((n:any,i:number)=>(
-            <div key={n.id} style={{padding:'12px 14px',borderRadius:12,marginBottom:8,background:n.is_read?'transparent':'rgba(0,102,204,.06)',border:`1px solid ${n.is_read?'transparent':'rgba(0,170,255,.14)'}`,animation:`fadeUp .25s ease ${i*.04}s both`,transition:'all .2s'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <div style={{fontWeight:700,fontSize:'.88rem'}}>{n.title}</div>
-                {!n.is_read&&<span style={{width:8,height:8,borderRadius:'50%',background:'var(--accent)',display:'inline-block'}}/>}
+                <button className="btn btn-primary" style={{width:'100%'}} onClick={submit} disabled={loading}>
+                  {loading?<><span className="spinner"/>Mendaftar...</>:<>Daftar Sekarang</>}
+                </button>
               </div>
-              <div style={{fontSize:'.82rem',color:'var(--text2)',marginTop:5,lineHeight:1.5}}>{n.message}</div>
-              <div style={{fontSize:'.72rem',color:'var(--text3)',marginTop:6}}>{fmtDate(n.created_at)}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* PROFILE */}
-      {tab==='profile'&&(
-        <div style={{animation:'fadeUp .3s ease'}}>
-          <div className="card" style={{padding:0,overflow:'hidden'}}>
-            <div className="profile-bg">
-              {u.background_url?(
-                u.background_type==='video'
-                  ?<video src={u.background_url} autoPlay loop muted playsInline/>
-                  :<img src={u.background_url} alt=""/>
-              ):null}
-              <div className="profile-bg-overlay"/>
-            </div>
-            <div className="profile-info">
-              <div className="profile-row">
-                <div className="profile-avatar">
-                  {u.avatar_url?<img src={u.avatar_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'><path d='M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2'/><circle cx='12' cy='7' r='4'/></svg>}
-                </div>
-                <div style={{flex:1}}>
-                  <div className="profile-name">{u.username}</div>
-                  <div className="profile-email">{u.email}</div>
-                </div>
-                <button className="btn btn-primary btn-sm" onClick={()=>setEditOpen(true)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Profil</button>
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:12}}>
-                {[['Role',u.role==='developer'?'Developer':u.role==='reseller'?'Reseller':'User',u.role==='developer'?'var(--purple)':u.role==='reseller'?'var(--yellow)':'var(--accent)'],['Roblox',u.roblox_username||'-','var(--text)'],['Bergabung',u.created_at?new Date(u.created_at).toLocaleDateString('id-ID'):'-','var(--text)'],['Total Exec',u.total_executions||0,'var(--accent)']].map(([l,v,c])=>(
-                  <div key={l as string} className="stat-box">
-                    <div style={{fontSize:'.65rem',color:'var(--text3)',textTransform:'uppercase',letterSpacing:1.5,marginBottom:5}}>{l}</div>
-                    <div style={{fontWeight:700,color:c as string,fontSize:'.92rem',fontFamily:'Rajdhani,sans-serif'}}>{v}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* Edit Profile Modal */}
-      <Modal open={editOpen} onClose={()=>setEditOpen(false)} title="Edit Profil">
-        <div className="form-group"><label className="form-label">Username</label><input className="form-input" value={ef.username} onChange={e=>setEf(f=>({...f,username:e.target.value}))}/></div>
-        <div className="form-group"><label className="form-label">Roblox Username</label><input className="form-input" placeholder="Username Roblox..." value={ef.roblox_username} onChange={e=>setEf(f=>({...f,roblox_username:e.target.value}))}/></div>
-        <div className="divider"/>
-        {/* Avatar: URL atau Upload File */}
-        <div className="form-group">
-          <label className="form-label">Foto Profil</label>
-          <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
-            <label style={{display:'inline-flex',alignItems:'center',gap:6,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:'.8rem',color:'var(--text2)'}}>
-              📁 Upload Foto <input type="file" accept="image/*" style={{display:'none'}} onChange={e=>{
-                const f=e.target.files?.[0]; if(!f) return
-                if(f.size>2*1024*1024){toast('Foto max 2MB','error');return}
-                const r=new FileReader(); r.onload=ev=>setEf(p=>({...p,avatar_file_url:ev.target?.result as string||'',avatar_url:''})); r.readAsDataURL(f)
-              }}/>
-            </label>
-            <span style={{color:'var(--text3)',fontSize:'.8rem',alignSelf:'center'}}>atau</span>
-          </div>
-          <input className="form-input" placeholder="URL Avatar https://...jpg" value={ef.avatar_url} onChange={e=>setEf(f=>({...f,avatar_url:e.target.value,avatar_file_url:''}))}/>
-        </div>
-        {/* Background: URL atau Upload */}
-        <div className="form-group">
-          <label className="form-label">Background Layar</label>
-          <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
-            <label style={{display:'inline-flex',alignItems:'center',gap:6,background:'var(--card2)',border:'1px solid var(--border)',borderRadius:8,padding:'7px 12px',cursor:'pointer',fontSize:'.8rem',color:'var(--text2)'}}>
-              📁 Upload Foto/Video <input type="file" accept="image/*,video/*" style={{display:'none'}} onChange={e=>{
-                const f=e.target.files?.[0]; if(!f) return
-                if(f.size>10*1024*1024){toast('File max 10MB','error');return}
-                const isVid=f.type.startsWith('video')
-                const r=new FileReader(); r.onload=ev=>setEf(p=>({...p,background_url:ev.target?.result as string||'',background_type:isVid?'video':'image'})); r.readAsDataURL(f)
-              }}/>
-            </label>
-            <span style={{color:'var(--text3)',fontSize:'.8rem',alignSelf:'center'}}>atau URL:</span>
-          </div>
-          <input className="form-input" placeholder="https://... (foto atau video)" value={ef.background_url?.startsWith('data:')?'[File uploaded]':ef.background_url} onChange={e=>{if(!e.target.value.startsWith('data:'))setEf(f=>({...f,background_url:e.target.value}))}}/>
-        </div>
-        <div className="form-group"><label className="form-label">Tipe Background</label>
-          <select className="form-select" value={ef.background_type} onChange={e=>setEf(f=>({...f,background_type:e.target.value}))}>
-            <option value="image">🖼️ Gambar</option><option value="video">🎥 Video</option>
-          </select>
-        </div>
-        <div className="divider"/>
-        <div className="form-group"><label className="form-label">Password Baru (kosong = tidak ganti)</label>
-          <div className="form-pw-wrap">
-            <input className="form-input" type={showPw?'text':'password'} placeholder="Password baru..." value={ef.password} onChange={e=>setEf(f=>({...f,password:e.target.value}))}/>
-            <button type="button" className="pw-toggle" onClick={()=>setShowPw(!showPw)}><svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>{showPw?(<><path d='M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94'/><path d='M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19'/><line x1='1' y1='1' x2='23' y2='23'/></>):(<><path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z'/><circle cx='12' cy='12' r='3'/></>)}</svg></button>
-          </div>
-        </div>
-        <div style={{display:'flex',gap:10}}>
-          <button className="btn btn-primary" style={{flex:1}} onClick={saveProfile} disabled={saving}>
-            {saving?<><span className="spinner"/>Menyimpan...</>:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginRight:5}}><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Simpan</>}
-          </button>
-          <button className="btn btn-ghost" onClick={()=>setEditOpen(false)}>Batal</button>
-        </div>
-      </Modal>
+      </div>
     </>
   )
 }
+
+
 
 // ─── Feedback Page (embedded) ────────────────────────────────
 function FeedbackPage() {
