@@ -159,6 +159,53 @@ function LoadingScreen({done}:{done:boolean}) {
   )
 }
 
+// ─── Forgot Modal ────────────────────────────────────────────
+function ForgotModal({open,onClose}:{open:boolean;onClose:()=>void}) {
+  const [step,setStep]=useState<'email'|'code'|'reset'>('email')
+  const [email,setEmail]=useState('')
+  const [code,setCode]=useState('')
+  const [pw,setPw]=useState('')
+  const [loading,setLoading]=useState(false)
+
+  async function sendCode(){
+    setLoading(true)
+    const d=await api('/auth/forgot-password','POST',{email})
+    setLoading(false)
+    if(d.error){toast(d.error,'error');return}
+    toast('Kode dikirim ke email!','success')
+    setStep('code')
+  }
+  async function verifyCode(){
+    setLoading(true)
+    const d=await api('/auth/reset-password','POST',{email,code,newPassword:pw})
+    setLoading(false)
+    if(d.error){toast(d.error,'error');return}
+    toast('Password berhasil direset!','success')
+    onClose();setStep('email');setEmail('');setCode('');setPw('')
+  }
+
+  if(!open)return null
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.85)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(10px)',padding:20}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div style={{background:'var(--card)',border:'1px solid var(--border)',borderRadius:20,padding:28,width:'100%',maxWidth:400,boxShadow:'0 40px 80px rgba(0,0,0,.8)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+          <div style={{fontFamily:'Rajdhani,sans-serif',fontWeight:700,fontSize:'1.1rem'}}>🔑 Lupa Password</div>
+          <button onClick={onClose} style={{background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',color:'#8a8a9a',borderRadius:8,padding:'4px 10px',cursor:'pointer'}}>✕</button>
+        </div>
+        {step==='email'&&<>
+          <div className="form-group"><label className="form-label">Email akun kamu</label><input className="form-input" type="email" placeholder="email@..." value={email} onChange={e=>setEmail(e.target.value)}/></div>
+          <button className="btn btn-primary" style={{width:'100%'}} onClick={sendCode} disabled={loading}>{loading?'Mengirim...':'Kirim Kode Reset'}</button>
+        </>}
+        {step==='code'&&<>
+          <div className="form-group"><label className="form-label">Kode dari email</label><input className="form-input" placeholder="6 digit kode..." value={code} onChange={e=>setCode(e.target.value)}/></div>
+          <div className="form-group"><label className="form-label">Password baru</label><input className="form-input" type="password" placeholder="Min. 6 karakter..." value={pw} onChange={e=>setPw(e.target.value)}/></div>
+          <button className="btn btn-primary" style={{width:'100%'}} onClick={verifyCode} disabled={loading}>{loading?'Mereset...':'Reset Password'}</button>
+        </>}
+      </div>
+    </div>
+  )
+}
+
 // ─── Auth Page ───────────────────────────────────────────────
 function AuthPage({onAuth}:{onAuth:(t:string,u:User)=>void}) {
   const [mode, setMode] = useState<'login'|'register'>('login')
